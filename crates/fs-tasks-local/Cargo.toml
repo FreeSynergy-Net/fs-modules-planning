@@ -1,6 +1,6 @@
 [package]
 name = "fs-tasks-local"
-description = "LocalTasks: the first provider of the Tasks trait (tasks_v1), over typed fs-objects v5 tables (ADR 0086); pilot programm-grundgeruest, core step K1 run 1"
+description = "LocalTasks: the first provider of the Tasks trait (tasks_v1), over typed fs-objects v5 tables (ADR 0086)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

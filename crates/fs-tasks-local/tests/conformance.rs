@@ -97,9 +97,9 @@ async fn the_rank_rules_with_place_pass() {
 }
 
 /// The night run of the top rank rules: creations on top until the rank runs out for real (6362 and more) and edges of
-/// 6000. Slow in a debug build, so it is marked and runs once in CI (`cargo test -- --ignored`).
+/// 6000. Slow in a debug build, so it is marked `#[ignore]`: it is NOT run by CI or by the gates, only by hand (`cargo test -p fs-tasks-local -- --ignored`).
 #[tokio::test]
-#[ignore = "slow: the long rank rules run once in CI with --ignored"]
+#[ignore = "slow: the long rank rules run only by hand with --ignored"]
 async fn the_rank_rules_on_top_pass_the_long_run() {
     let fx = LocalFx::memory().await;
     let options = Options {

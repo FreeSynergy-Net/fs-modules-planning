@@ -6,9 +6,15 @@ FreeSynergy planning modules: dependencies (RFC 9253), critical path, hand order
 
 ## Status
 
-The first content is the island of the tasks program, moved unchanged from [fs-tasks](https://github.com/FreeSynergy/fs-tasks) (main `ae7be9da0168ed2c05eeca4ce0ff48c4c7a4dae0`): the crates `crates/fs-tasks-local` (provider of the `Tasks` trait over typed fs-objects v5 tables) and `crates/fs-tasks-testdata` (fake, conformance rules, sample data), under their old names; renaming to `fs-todo` is a later step. All 150 files are byte for byte equal to the source (list of sha256: `docs/insel-umzug-sha256.txt`). Git pins are as in fs-tasks (fs-objects v0.0.2, fs-types = fs-interfaces v0.0.22, fs-jscalendar v0.0.2, fs-people rev 358a8145). The island is split into the modules below step by step.
+Latest tag: none yet; the next release is 0.0.1.
 
-## Modules that will come
+Today this repository is ONE tasks provider plus ONE test kit, moved unchanged from [fs-tasks](https://github.com/FreeSynergy/fs-tasks) (main `ae7be9da0168ed2c05eeca4ce0ff48c4c7a4dae0`): `crates/fs-tasks-local` (provider of the `Tasks` trait `tasks_v1` over typed fs-objects v5 tables) and `crates/fs-tasks-testdata` (fake, conformance rules, sample data) with the type `Task`, under their old names. Both crates have version 0.0.1. All 150 files are byte for byte equal to the source (list of sha256: `docs/insel-umzug-sha256.txt`). Git pins are as in fs-tasks (fs-objects v0.0.2, fs-types = fs-interfaces v0.0.22, fs-jscalendar v0.0.2, fs-people rev 358a8145).
+
+Readiness, rank, checklist, progress and claim exist as code only INSIDE the provider, bound to `tasks_v1`; none of them is a module of its own yet. Schedule and critical path do not exist at all, and the progress presets `rfc8984` and `freesynergy` are missing. The long rank test is `#[ignore]` and runs by hand only (`cargo test -p fs-tasks-local -- --ignored`), not in CI.
+
+## Modules that will come (targets, not present)
+
+Decision (strategy 6e, F2): the renaming to `fs-todo` stays a later step. A bundle `fs-planning` is made only when at least two programs use the parts (ADR 0101 E2); until then the parts below are single modules.
 
 - `fs-dependency`: dependencies between items (RFC 9253 `FINISHTOSTART`, `DEPENDS-ON`), cycles, readiness.
 - `fs-critical-path`: critical path and slack (CPM), built on `fs-dependency`.
@@ -24,10 +30,10 @@ This repository is written with the help of Claude (Anthropic), an AI. The commi
 
 ## Gates
 
-`cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings -W clippy::pedantic`, `cargo test --workspace --all-features --locked`, and the coding rules of fs-release (`scripts/gates.sh`). CI: `.github/workflows/check.yml` (fs-release v0.0.10) and `windows.yml`.
+`cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings -W clippy::pedantic`, `cargo test --workspace --all-features --locked`, and the coding rules of fs-release (`scripts/gates.sh`). CI: `.github/workflows/check.yml` (fs-release v0.0.11) and `windows.yml` (`_windows-check.yml@v0.0.11`).
 
 Licence: MIT OR Apache-2.0.
 
 ## Auf Deutsch
 
-FreeSynergy-Planungsmodule: Abhaengigkeiten (RFC 9253), kritischer Pfad, Handreihenfolge, Checklisten, Fortschrittszustaende, Ansprueche und das Aufgaben-Datenmodul (JSCalendar Task, RFC 8984; VTODO, RFC 5545). Mit Hilfe von Claude (KI) gebaut. Lizenz MIT OR Apache-2.0. Stand: nur das Geruest, der Arbeitsbereich ist leer; als Erstes kommt die Insel des Aufgabenprogramms unveraendert hierher.
+FreeSynergy-Planungsmodule: Abhaengigkeiten (RFC 9253), kritischer Pfad, Handreihenfolge, Checklisten, Fortschrittszustaende, Ansprueche und das Aufgaben-Datenmodul (JSCalendar Task, RFC 8984; VTODO, RFC 5545). Mit Hilfe von Claude (KI) gebaut. Lizenz MIT OR Apache-2.0. Stand: Heute ist das Repository EIN Aufgaben-Provider (`fs-tasks-local`) plus EIN Testbausatz (`fs-tasks-testdata`) mit dem Typ Task, unveraendert aus fs-tasks verschoben; beide Crates haben die Version 0.0.1. Bereitschaft, Rang, Checkliste, Fortschritt und Anspruch gibt es als Code nur innerhalb des Providers, keine davon als eigenes Modul. Terminplan und kritischer Pfad fehlen ganz, ebenso die Fortschritts-Voreinstellungen rfc8984 und freesynergy. Neuester Tag: noch keiner; das naechste Release ist 0.0.1. Die Umbenennung zu `fs-todo` bleibt ein spaeterer Schritt; ein Bausatz `fs-planning` entsteht erst, wenn mindestens zwei Programme die Teile nutzen (ADR 0101 E2).

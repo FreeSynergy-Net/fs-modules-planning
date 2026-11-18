@@ -1,27 +1,23 @@
-# The gate on the Windows runner of fs-release (windows-2022): the whole workspace is linted and tested here, never cross-built.
+# The gate on the Windows runner of fs-release (windows-2022), as a caller of _windows-check.yml.
+# Pin to a fs-release TAG that contains _windows-check.yml (v0.0.11 = first tag after the Opus look; never @main); `scripts/pin-refs.sh --dir <repo> <tag>` raises it. No secrets, so no `secrets: inherit`.
 name: windows
 on:
   push:
   workflow_dispatch:
+    inputs:
+      cache: { type: boolean, default: true, description: "Rust cache on; false = cold run (the evidence for a tag)" }
 
 permissions:
   contents: read
 
-env:
-  CARGO_TERM_COLOR: always
-  CARGO_INCREMENTAL: "0"
-
 jobs:
   windows:
-    runs-on: windows-2022
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: FreeSynergy/fs-release/actions/setup-rust@v0.0.10
-        with:
-          components: rustfmt,clippy
-          cache-key: windows
-      - run: cargo fmt --check
-      - run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings -W clippy::pedantic
-      - run: cargo test --workspace --all-features --locked --no-fail-fast
+    uses: FreeSynergy/fs-release/.github/workflows/_windows-check.yml@v0.0.11
+    with:
+      cache: ${{ github.event_name != 'workflow_dispatch' || inputs.cache }} # push: cache on; by hand: the input above
+    #   (more, optional)
+    #   runner: windows-2022          # explicit, never *-latest
+    #   packages: "fs-types fs-foo"   # -p each; default: --workspace
+    #   features: "--all-features"    # default
+    #   clippy-extra: "-W clippy::pedantic"
+    #   no-fail-fast: true
