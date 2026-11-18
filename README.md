@@ -6,7 +6,7 @@ FreeSynergy planning modules: dependencies (RFC 9253), critical path, hand order
 
 ## Status
 
-Skeleton only: the workspace holds one empty crate (`crates/fs-modules-planning`, documentation only, no code) so that it builds; it goes away with the first real module. The first content is the island of the tasks program, moved unchanged (crates `fs-tasks-local` and `fs-tasks-testdata`, under their old names; renaming to `fs-todo` is a later step).
+The first content is the island of the tasks program, moved unchanged from [fs-tasks](https://github.com/FreeSynergy/fs-tasks) (main `ae7be9da0168ed2c05eeca4ce0ff48c4c7a4dae0`): the crates `crates/fs-tasks-local` (provider of the `Tasks` trait over typed fs-objects v5 tables) and `crates/fs-tasks-testdata` (fake, conformance rules, sample data), under their old names; renaming to `fs-todo` is a later step. All 150 files are byte for byte equal to the source (list of sha256: `docs/insel-umzug-sha256.txt`). Git pins are as in fs-tasks (fs-objects v0.0.2, fs-types = fs-interfaces v0.0.22, fs-jscalendar v0.0.2, fs-people rev 358a8145). The island is split into the modules below step by step.
 
 ## Modules that will come
 
