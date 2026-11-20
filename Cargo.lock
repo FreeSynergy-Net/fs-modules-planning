@@ -602,36 +602,11 @@ checksum = "1c66915cc5391097de7a2b0b972e8505aa33c0df401fd3a6811dbdb32881ba48"
 
 [[package]]
 name = "fs-interfaces"
-version = "0.0.22"
-source = "git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.0.22#7743056396ffa80bc77d3af9d1946229dd1f6155"
-dependencies = [
- "capnp",
- "idna",
-]
-
-[[package]]
-name = "fs-interfaces"
 version = "0.0.29"
 source = "git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.0.29#4f5834db3ac382a9f5897d467e066ed151d1c6cf"
 dependencies = [
  "capnp",
- "fs-types 0.0.4",
-]
-
-[[package]]
-name = "fs-jscalendar"
-version = "0.0.2"
-source = "git+https://github.com/FreeSynergy/fs-jscalendar?tag=v0.0.2#f3d651b73da2e440d24140df0bf4669a34c47cdc"
-dependencies = [
- "calcard",
- "chrono",
- "fs-types 0.0.22",
- "jiff",
- "jiff-tzdb",
- "serde",
- "serde_json",
- "thiserror",
- "uuid",
+ "fs-types",
 ]
 
 [[package]]
@@ -641,32 +616,12 @@ source = "git+https://github.com/FreeSynergy/fs-jscalendar?tag=v0.0.5#8806df53f2
 dependencies = [
  "calcard",
  "chrono",
- "fs-types 0.0.4",
+ "fs-types",
  "jiff",
  "jiff-tzdb",
  "serde",
  "serde_json",
  "thiserror",
- "uuid",
-]
-
-[[package]]
-name = "fs-objects"
-version = "0.0.2"
-source = "git+https://github.com/FreeSynergy/fs-objects?tag=v0.0.2#cad3c46f436489712aa90c3268b3008ce43e8a2e"
-dependencies = [
- "async-trait",
- "base64",
- "chrono",
- "fs-types 0.0.22",
- "getrandom 0.3.4",
- "serde",
- "serde_json",
- "sha2",
- "thiserror",
- "tokio",
- "turso",
- "unicode-normalization",
  "uuid",
 ]
 
@@ -690,55 +645,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "fs-people-directory"
-version = "0.0.13"
-source = "git+https://github.com/FreeSynergy/fs-people?rev=358a8145b08dbea73dac040de69207f3ef90ad33#358a8145b08dbea73dac040de69207f3ef90ad33"
-dependencies = [
- "async-trait",
- "fs-types 0.0.22",
-]
-
-[[package]]
 name = "fs-tasks-core"
 version = "0.0.1"
 dependencies = [
  "async-trait",
  "capnp",
  "chrono",
- "fs-interfaces 0.0.29",
- "fs-jscalendar 0.0.5",
- "fs-objects 0.0.8",
+ "fs-interfaces",
+ "fs-jscalendar",
+ "fs-objects",
  "serde",
  "serde_json",
  "tempfile",
  "thiserror",
- "tokio",
-]
-
-[[package]]
-name = "fs-tasks-local"
-version = "0.0.1"
-dependencies = [
- "async-trait",
- "chrono",
- "chrono-tz",
- "fs-objects 0.0.2",
- "fs-tasks-testdata",
- "fs-types 0.0.22",
- "tokio",
- "turso",
-]
-
-[[package]]
-name = "fs-tasks-testdata"
-version = "0.0.1"
-dependencies = [
- "async-trait",
- "chrono",
- "chrono-tz",
- "fs-jscalendar 0.0.2",
- "fs-people-directory",
- "fs-types 0.0.22",
  "tokio",
 ]
 
@@ -751,20 +670,6 @@ dependencies = [
  "chrono",
  "geo-uri",
  "idna",
- "iri-string",
- "oxilangtag",
- "unicode-normalization",
-]
-
-[[package]]
-name = "fs-types"
-version = "0.0.22"
-source = "git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.0.22#7743056396ffa80bc77d3af9d1946229dd1f6155"
-dependencies = [
- "capnp",
- "chrono",
- "fs-interfaces 0.0.22",
- "geo-uri",
  "iri-string",
  "oxilangtag",
  "unicode-normalization",
