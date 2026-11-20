@@ -628,16 +628,16 @@ version = "0.0.22"
 source = "git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.0.22#7743056396ffa80bc77d3af9d1946229dd1f6155"
 dependencies = [
  "capnp",
- "capnp-rpc",
- "chrono",
- "fs-objects 0.0.1",
- "futures",
  "idna",
- "rustix 1.1.6",
- "tokio",
- "tokio-util",
- "uuid",
- "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "fs-interfaces"
+version = "0.0.29"
+source = "git+https://www.github.com/FreeSynergy/fs-interfaces?rev=4f5834db#4f5834db3ac382a9f5897d467e066ed151d1c6cf"
+dependencies = [
+ "capnp",
+ "fs-types 0.0.4",
 ]
 
 [[package]]
@@ -647,13 +647,45 @@ source = "git+https://github.com/FreeSynergy/fs-jscalendar?tag=v0.0.2#f3d651b73d
 dependencies = [
  "calcard",
  "chrono",
- "fs-types",
+ "fs-types 0.0.22",
  "jiff",
  "jiff-tzdb",
  "serde",
  "serde_json",
  "thiserror",
  "uuid",
+]
+
+[[package]]
+name = "fs-modules-planning"
+version = "0.0.1"
+dependencies = [
+ "capnp",
+ "capnp-rpc",
+ "fs-interfaces 0.0.29",
+ "fs-objects 0.0.1",
+ "fs-rpc",
+ "fs-tasks-core",
+ "serde_json",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
+name = "fs-modules-planning-client"
+version = "0.0.1"
+dependencies = [
+ "capnp",
+ "capnp-rpc",
+ "fs-interfaces 0.0.29",
+ "fs-jscalendar",
+ "fs-modules-planning",
+ "fs-objects 0.0.1",
+ "fs-rpc",
+ "fs-tasks-core",
+ "serde_json",
+ "tempfile",
+ "tokio",
 ]
 
 [[package]]
@@ -682,8 +714,27 @@ dependencies = [
  "async-trait",
  "base64",
  "chrono",
- "fs-types",
+ "fs-types 0.0.22",
  "getrandom 0.3.4",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
+ "tokio",
+ "turso",
+ "unicode-normalization",
+ "uuid",
+]
+
+[[package]]
+name = "fs-objects"
+version = "0.0.8"
+source = "git+https://github.com/FreeSynergy/fs-objects?tag=v0.0.8#b638ef3ade2d07f8f03b6ad30c1e57c78f0bf87f"
+dependencies = [
+ "async-trait",
+ "base64",
+ "chrono",
+ "rustix 1.1.6",
  "serde",
  "serde_json",
  "sha2",
@@ -700,7 +751,26 @@ version = "0.0.13"
 source = "git+https://github.com/FreeSynergy/fs-people?rev=358a8145b08dbea73dac040de69207f3ef90ad33#358a8145b08dbea73dac040de69207f3ef90ad33"
 dependencies = [
  "async-trait",
- "fs-types",
+ "fs-types 0.0.22",
+]
+
+[[package]]
+name = "fs-rpc"
+version = "0.0.3"
+source = "git+https://github.com/FreeSynergy/fs-rpc?tag=v0.0.3#93c7ca97e71ef386f66c84a7eb580c6576c2f6e9"
+dependencies = [
+ "capnp",
+ "capnp-rpc",
+ "chrono",
+ "fs-interfaces 0.0.29",
+ "fs-objects 0.0.8",
+ "fs-types 0.0.4",
+ "futures",
+ "rustix 1.1.6",
+ "tokio",
+ "tokio-util",
+ "uuid",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -710,7 +780,7 @@ dependencies = [
  "async-trait",
  "capnp",
  "chrono",
- "fs-interfaces",
+ "fs-interfaces 0.0.22",
  "fs-jscalendar",
  "fs-objects 0.0.1",
  "serde",
@@ -729,26 +799,9 @@ dependencies = [
  "chrono-tz",
  "fs-objects 0.0.2",
  "fs-tasks-testdata",
- "fs-types",
+ "fs-types 0.0.22",
  "tokio",
  "turso",
-]
-
-[[package]]
-name = "fs-tasks-server"
-version = "0.0.1"
-dependencies = [
- "async-trait",
- "capnp",
- "capnp-rpc",
- "fs-interfaces",
- "fs-objects 0.0.1",
- "fs-tasks-core",
- "rustix 1.1.6",
- "serde_json",
- "tempfile",
- "tokio",
- "uuid",
 ]
 
 [[package]]
@@ -760,8 +813,22 @@ dependencies = [
  "chrono-tz",
  "fs-jscalendar",
  "fs-people-directory",
- "fs-types",
+ "fs-types 0.0.22",
  "tokio",
+]
+
+[[package]]
+name = "fs-types"
+version = "0.0.4"
+source = "git+https://github.com/FreeSynergy/fs-types?tag=v0.0.4#0dbc9b685746ea55ceb789fe1043a162e34ac387"
+dependencies = [
+ "capnp",
+ "chrono",
+ "geo-uri",
+ "idna",
+ "iri-string",
+ "oxilangtag",
+ "unicode-normalization",
 ]
 
 [[package]]
@@ -771,7 +838,7 @@ source = "git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.0.22#774305639
 dependencies = [
  "capnp",
  "chrono",
- "fs-interfaces",
+ "fs-interfaces 0.0.22",
  "geo-uri",
  "iri-string",
  "oxilangtag",

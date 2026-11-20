@@ -2,6 +2,22 @@
 
 Version = tag.
 
+## Unreleased
+
+English
+
+- New: the planning module service `fs-modules-planning` (one process per person, Unix socket through fs-rpc, data in `$XDG_DATA_HOME/freesynergy/modules/planning/`, the actor only from the connection) serving `tasks.capnp`: `Items` (create, get, getByUid, delete, list) and `Boards` (create, list, layout, editColumns with compare-and-set, moveCard) over the `Boards` trait of `fs-tasks-core`.
+- New: `fs-modules-planning-client` (columns, add card, move card, add column, rename, limit, `can(operation)` from the reported capabilities, `ensure_service`) and the command catalog `catalog/commands.json` (command id to contract call).
+- `fs-tasks-core`: `TaskRepo::as_actor` (a view written as another actor, one per connection).
+- Transition: fs-interfaces main 4f5834db by `[patch]` (Boards methods; no tag yet). `fs-tasks-server` (built on `fs_interfaces::rpc`, gone after fs-interfaces 0.0.28) is excluded from the workspace and superseded.
+
+Auf Deutsch
+
+- Neu: der Dienst des Planungsmoduls `fs-modules-planning` (ein Prozess je Person, Unix-Socket ueber fs-rpc, Daten unter `$XDG_DATA_HOME/freesynergy/modules/planning/`, der Akteur nur aus der Verbindung) mit `tasks.capnp`: `Items` (create, get, getByUid, delete, list) und `Boards` (create, list, layout, editColumns mit Compare-and-Set, moveCard) ueber den `Boards`-Trait von `fs-tasks-core`.
+- Neu: `fs-modules-planning-client` (Spalten, Karte anlegen, Karte verschieben, Spalte anlegen, umbenennen, Limit, `can(Operation)` aus den gemeldeten Faehigkeiten, `ensure_service`) und der Befehlskatalog `catalog/commands.json` (Befehls-ID zu Vertragsaufruf).
+- `fs-tasks-core`: `TaskRepo::as_actor` (eine Sicht, die als anderer Akteur schreibt, je Verbindung eine).
+- Uebergang: fs-interfaces main 4f5834db per `[patch]` (Boards-Methoden; noch kein Tag). `fs-tasks-server` (auf `fs_interfaces::rpc` gebaut, nach fs-interfaces 0.0.28 weg) ist aus dem Workspace ausgenommen und abgeloest.
+
 ## 0.0.1 - 2026-11-18
 
 English

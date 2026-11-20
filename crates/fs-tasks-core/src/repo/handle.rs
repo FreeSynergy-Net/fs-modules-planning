@@ -74,6 +74,16 @@ impl TaskRepo {
         }
     }
 
+    /// The same tasks written as another actor: one per connection of a service, which learns who is on it from the system.
+    /// The store, the write turn and the subscribers stay shared.
+    #[must_use]
+    pub fn as_actor(&self, actor: impl Into<String>) -> Self {
+        Self {
+            actor: actor.into(),
+            ..self.clone()
+        }
+    }
+
     /// How many tasks a scan reads per query (default 1000); a small value is for tests of the scan itself.
     #[must_use]
     pub fn with_scan_chunk(mut self, chunk: usize) -> Self {

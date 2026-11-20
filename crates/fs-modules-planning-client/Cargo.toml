@@ -1,0 +1,28 @@
+[package]
+name = "fs-modules-planning-client"
+description = "Client of the planning module: the board of tasks as the host needs it (columns, add card, move card, add column, what can be done), over the contract tasks.capnp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "fs_modules_planning_client"
+
+[dependencies]
+fs-rpc = { git = "https://github.com/FreeSynergy/fs-rpc", tag = "v0.0.3" }
+fs-interfaces = { git = "https://github.com/FreeSynergy/fs-interfaces", tag = "v0.0.28" }
+fs-jscalendar = { git = "https://github.com/FreeSynergy/fs-jscalendar", tag = "v0.0.2" }
+capnp = "0.27"
+capnp-rpc = "0.27"
+serde_json = "1"
+tokio = { version = "1", features = ["rt", "net", "sync", "time"] }
+
+[dev-dependencies]
+fs-modules-planning = { path = "../fs-modules-planning" }
+fs-tasks-core = { path = "../fs-tasks-core" }
+fs-objects = { git = "https://github.com/FreeSynergy/fs-objects", tag = "v0.0.1" }
+tempfile = "3"
+tokio = { version = "1", features = ["rt", "net", "sync", "time", "macros"] }

@@ -1,6 +1,21 @@
 [workspace]
 resolver = "2"
-members = ["crates/fs-tasks-testdata", "crates/fs-tasks-local", "crates/fs-tasks-core", "crates/fs-tasks-server"]
+members = [
+    "crates/fs-tasks-testdata",
+    "crates/fs-tasks-local",
+    "crates/fs-tasks-core",
+    "crates/fs-modules-planning",
+    "crates/fs-modules-planning-client",
+]
+# Superseded by fs-modules-planning (fs-rpc instead of fs_interfaces::rpc, which fs-interfaces dropped after 0.0.28); stays until
+# the review has accepted the new service, then it goes.
+exclude = ["crates/fs-tasks-server"]
+
+# Transition (CLAUDE.md 4b): the contract `Boards` (editColumns, moveCard ...) is in fs-interfaces main 4f5834db, not in a tag yet.
+# Removed when the tag after that head exists.
+[patch."https://github.com/FreeSynergy/fs-interfaces"]
+# (Cargo refuses a patch with the same URL, so the same repository is named through its `www.` address.)
+fs-interfaces = { git = "https://www.github.com/FreeSynergy/fs-interfaces", rev = "4f5834db" }
 
 [workspace.package]
 version = "0.0.1"
