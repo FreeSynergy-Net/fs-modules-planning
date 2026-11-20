@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/fs-tasks-testdata", "crates/fs-tasks-local"]
+members = ["crates/fs-tasks-testdata", "crates/fs-tasks-local", "crates/fs-tasks-core", "crates/fs-tasks-server"]
 
 [workspace.package]
 version = "0.0.1"

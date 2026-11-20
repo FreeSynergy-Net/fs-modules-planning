@@ -1,0 +1,29 @@
+[package]
+name = "fs-tasks-core"
+description = "Program core of FreeSynergy tasks: JSCalendar 2.0 Task over fs-objects behind the TaskItems interface, RFC 9253 relations, iCalendar VTODO"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[features]
+# Cap'n Proto contract: the schema and generated code live in fs-interfaces (ADR 0045).
+contract = ["dep:capnp"]
+
+[dependencies]
+fs-objects = { git = "https://github.com/FreeSynergy/fs-objects", tag = "v0.0.1" }
+# Shared JSCalendar types (time, rule, participants, upgrade, validation, iCalendar); Task itself is ours (ADR 0050).
+fs-jscalendar = { git = "https://github.com/FreeSynergy/fs-jscalendar", tag = "v0.0.2" }
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+async-trait = "0.1"
+tokio = { version = "1", features = ["sync"] }
+capnp = { version = "0.27", optional = true }
+# The contract and the provider rule (ADR 0045). The generated code is re-exported with feature `contract`.
+fs-interfaces = { git = "https://github.com/FreeSynergy/fs-interfaces", tag = "v0.0.22" }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+tempfile = "3"
