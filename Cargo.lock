@@ -625,7 +625,7 @@ checksum = "1c66915cc5391097de7a2b0b972e8505aa33c0df401fd3a6811dbdb32881ba48"
 [[package]]
 name = "fs-interfaces"
 version = "0.0.29"
-source = "git+https://www.github.com/FreeSynergy/fs-interfaces?rev=4f5834db#4f5834db3ac382a9f5897d467e066ed151d1c6cf"
+source = "git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.0.29#4f5834db3ac382a9f5897d467e066ed151d1c6cf"
 dependencies = [
  "capnp",
  "fs-types",
