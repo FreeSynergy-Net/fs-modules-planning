@@ -1,10 +1,17 @@
 [workspace]
 resolver = "2"
-members = ["crates/fs-tasks-core"]
-# fs-tasks-server: superseded by fs-modules-planning (fs_interfaces::rpc is gone after fs-interfaces 0.0.28); needs the old pins.
+members = ["crates/fs-tasks-core", "crates/fs-modules-planning", "crates/fs-modules-planning-client"]
+# fs-tasks-server: superseded by fs-modules-planning (fs-rpc instead of fs_interfaces::rpc, which fs-interfaces dropped after 0.0.28); needs the old pins.
 # fs-tasks-testdata, fs-tasks-local: not liftable yet, fs-people-directory still hangs on fs-types 0.0.22
 # (card "lift fs-people to fs-types v0.0.4"); the files stay.
 exclude = ["crates/fs-tasks-server", "crates/fs-tasks-testdata", "crates/fs-tasks-local"]
+
+# Transition (CLAUDE.md 4b): fs-rpc v0.0.3 still pins fs-interfaces v0.0.28 and fs-interfaces is a plain tag v0.0.29 elsewhere, so the
+# capnp types of two sources would clash. The patch points the 0.0.28 users to the head of the tag v0.0.29 (4f5834db, same content).
+# Removed when fs-rpc is lifted to fs-interfaces v0.0.29 (card "lift fs-rpc to fs-interfaces v0.0.29").
+[patch."https://github.com/FreeSynergy/fs-interfaces"]
+# (Cargo refuses a patch with the same URL, so the same repository is named through its `www.` address.)
+fs-interfaces = { git = "https://www.github.com/FreeSynergy/fs-interfaces", rev = "4f5834db" }
 
 [workspace.package]
 version = "0.0.1"

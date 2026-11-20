@@ -1,0 +1,10 @@
+{
+  "module": "planning",
+  "contract": "tasks",
+  "commands": [
+    { "id": "create", "call": "Items.create", "capability": "task.create" },
+    { "id": "move", "call": "Boards.moveCard", "capability": "card.move" },
+    { "id": "column.create", "call": "Boards.editColumns", "capability": "column.create" },
+    { "id": "delete", "call": "Items.delete", "capability": "task.delete" }
+  ]
+}
