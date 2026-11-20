@@ -25,13 +25,9 @@ pub(crate) fn rpc_error(e: Error) -> capnp::Error {
         Error::NotFound(_) => {
             Problem::new(NOT_FOUND, "Task not found", e.to_string(), 404).into_error()
         }
-        Error::Unsupported(not_possible) => Problem::new(
-            UNSUPPORTED,
-            "Not possible",
-            not_possible.to_string(),
-            501,
-        )
-        .into_error(),
+        Error::Unsupported(not_possible) => {
+            Problem::new(UNSUPPORTED, "Not possible", not_possible.to_string(), 501).into_error()
+        }
         _ => failed(e),
     }
 }

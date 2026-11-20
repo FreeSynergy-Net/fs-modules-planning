@@ -40,7 +40,10 @@ async fn the_service_reports_what_the_host_may_unlock() {
             for id in ["create", "move", "column.create", "delete"] {
                 assert!(planning.can_command(id), "{id}");
             }
-            assert!(!planning.can_command("claim"), "a command the catalog does not have");
+            assert!(
+                !planning.can_command("claim"),
+                "a command the catalog does not have"
+            );
         })
         .await;
 }
@@ -57,7 +60,10 @@ async fn a_card_is_made_in_its_column_and_moved() {
             let doing = columns.iter().find(|c| c.id == "doing").unwrap();
             let titles: Vec<_> = doing.cards.iter().map(|c| c.title.as_str()).collect();
             assert_eq!(titles, ["Write the test", "Second"]);
-            planning.move_card(&card.uid, "done", Some(0)).await.unwrap();
+            planning
+                .move_card(&card.uid, "done", Some(0))
+                .await
+                .unwrap();
             let columns = planning.columns().await.unwrap();
             let in_column = |id: &str| -> Vec<String> {
                 columns
@@ -95,7 +101,10 @@ async fn columns_are_added_renamed_and_limited() {
             let mut planning = Planning::connect(&service.socket).await.unwrap();
             assert_eq!(planning.add_column("Review").await.unwrap(), "review");
             assert_eq!(planning.add_column("Review").await.unwrap(), "review-2");
-            planning.rename_column("review-2", "Second review").await.unwrap();
+            planning
+                .rename_column("review-2", "Second review")
+                .await
+                .unwrap();
             planning.set_limit("todo", Some(1)).await.unwrap();
             planning.add_card("todo", "one").await.unwrap();
             planning.add_card("todo", "two").await.unwrap();

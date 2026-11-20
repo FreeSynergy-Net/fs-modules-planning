@@ -6,7 +6,10 @@ use crate::model::{Error, Kind};
 use crate::wire::{ColumnData, Snapshot};
 
 /// The column `id` of the snapshot; an unknown column is [`Kind::Rejected`].
-pub(crate) fn column<'a>(snapshot: &'a mut Snapshot, id: &str) -> Result<&'a mut ColumnData, Error> {
+pub(crate) fn column<'a>(
+    snapshot: &'a mut Snapshot,
+    id: &str,
+) -> Result<&'a mut ColumnData, Error> {
     snapshot
         .columns
         .iter_mut()
@@ -18,9 +21,19 @@ pub(crate) fn column<'a>(snapshot: &'a mut Snapshot, id: &str) -> Result<&'a mut
 pub(crate) fn unused_id(name: &str, columns: &[ColumnData]) -> String {
     let mut slug: String = name
         .chars()
-        .map(|c| if c.is_alphanumeric() { c.to_ascii_lowercase() } else { '-' })
+        .map(|c| {
+            if c.is_alphanumeric() {
+                c.to_ascii_lowercase()
+            } else {
+                '-'
+            }
+        })
         .collect();
-    slug = slug.split('-').filter(|p| !p.is_empty()).collect::<Vec<_>>().join("-");
+    slug = slug
+        .split('-')
+        .filter(|p| !p.is_empty())
+        .collect::<Vec<_>>()
+        .join("-");
     if slug.is_empty() {
         slug = "column".into();
     }

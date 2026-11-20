@@ -32,10 +32,13 @@ pub fn find_service_program(running: &Path, usr_bin: &Path) -> Option<PathBuf> {
     } else {
         SERVICE_PROGRAM
     };
-    [running.parent().map(|d| d.join(name)), Some(usr_bin.join(name))]
-        .into_iter()
-        .flatten()
-        .find(|p| std::fs::metadata(p).is_ok_and(|m| m.is_file()))
+    [
+        running.parent().map(|d| d.join(name)),
+        Some(usr_bin.join(name)),
+    ]
+    .into_iter()
+    .flatten()
+    .find(|p| std::fs::metadata(p).is_ok_and(|m| m.is_file()))
 }
 
 /// Make sure the service listens on `socket`: reach the one that runs, or start `<program> serve --socket S`.
@@ -48,15 +51,15 @@ pub fn ensure_service(
     program: &Path,
     times: &SingleTimes,
 ) -> Result<(), Error> {
-    let unreachable = |cause: &str| {
-        Error::new(
-            Kind::Unreachable,
-            format!("{}: {cause}", socket.display()),
-        )
-    };
+    let unreachable =
+        |cause: &str| Error::new(Kind::Unreachable, format!("{}: {cause}", socket.display()));
     let starter = CommandStarter::new(
         program,
-        [OsStr::new("serve"), OsStr::new("--socket"), socket.as_os_str()],
+        [
+            OsStr::new("serve"),
+            OsStr::new("--socket"),
+            socket.as_os_str(),
+        ],
     );
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -81,7 +84,11 @@ pub fn ensure_service_found(
     running: &Path,
     times: &SingleTimes,
 ) -> Result<(), Error> {
-    let usr_bin = if cfg!(windows) { Path::new("") } else { Path::new("/usr/bin") };
+    let usr_bin = if cfg!(windows) {
+        Path::new("")
+    } else {
+        Path::new("/usr/bin")
+    };
     match find_service_program(running, usr_bin) {
         Some(program) => ensure_service(socket, expected, &program, times),
         None => Err(Error::new(

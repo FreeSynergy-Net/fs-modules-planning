@@ -99,7 +99,8 @@ impl From<capnp::Error> for Error {
             Kind::Conflict
         } else if text.contains("rejected:") {
             Kind::Rejected
-        } else if matches!(e.kind, capnp::ErrorKind::Unimplemented) || text.contains("Not possible") {
+        } else if matches!(e.kind, capnp::ErrorKind::Unimplemented) || text.contains("Not possible")
+        {
             Kind::Unsupported
         } else {
             Kind::Failed

@@ -58,7 +58,11 @@ impl tasks::Server for Root {
         Ok(())
     }
 
-    async fn items(self: Rc<Self>, _: tasks::ItemsParams, mut results: tasks::ItemsResults) -> Done {
+    async fn items(
+        self: Rc<Self>,
+        _: tasks::ItemsParams,
+        mut results: tasks::ItemsResults,
+    ) -> Done {
         let items = ItemsImpl {
             items: self.repo.clone(),
         };

@@ -210,7 +210,10 @@ impl Planning {
     }
 
     /// Replace the columns of the board by what `change` makes of them (one compare-and-set on the revision just read).
-    async fn edit(&mut self, change: impl FnOnce(&mut Snapshot) -> Result<(), Error>) -> Result<(), Error> {
+    async fn edit(
+        &mut self,
+        change: impl FnOnce(&mut Snapshot) -> Result<(), Error>,
+    ) -> Result<(), Error> {
         let mut snapshot = self.snapshot().await?;
         change(&mut snapshot)?;
         let mut request = self.boards().edit_columns_request();

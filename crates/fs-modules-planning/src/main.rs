@@ -3,5 +3,7 @@
 //! Pattern: Facade — one call.
 
 fn main() {
-    std::process::exit(fs_modules_planning::serve_command(std::env::args_os().skip(1)));
+    std::process::exit(fs_modules_planning::serve_command(
+        std::env::args_os().skip(1),
+    ));
 }

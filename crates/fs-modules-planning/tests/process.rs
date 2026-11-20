@@ -59,12 +59,21 @@ async fn it_serves_keeps_its_data_below_xdg_and_runs_once() {
                 match fs_rpc::connect::<tasks::Client>(&socket).await {
                     Ok(c) => break c,
                     Err(e) => {
-                        assert!(Instant::now() < deadline, "the service did not come up: {e}");
+                        assert!(
+                            Instant::now() < deadline,
+                            "the service did not come up: {e}"
+                        );
                         tokio::time::sleep(Duration::from_millis(100)).await;
                     }
                 }
             };
-            let answer = connection.client.capabilities_request().send().promise.await.unwrap();
+            let answer = connection
+                .client
+                .capabilities_request()
+                .send()
+                .promise
+                .await
+                .unwrap();
             let ids: Vec<String> = answer
                 .get()
                 .unwrap()
@@ -75,11 +84,18 @@ async fn it_serves_keeps_its_data_below_xdg_and_runs_once() {
                 .iter()
                 .map(|i| i.unwrap().to_string().unwrap())
                 .collect();
-            assert!(ids.iter().any(|i| i == "board.open") && ids.iter().any(|i| i == "card.move"), "{ids:?}");
+            assert!(
+                ids.iter().any(|i| i == "board.open") && ids.iter().any(|i| i == "card.move"),
+                "{ids:?}"
+            );
         })
         .await;
     let data = home.path().join("data/freesynergy/modules/planning");
-    assert!(data.join("objects.db").exists(), "the data lives in {}", data.display());
+    assert!(
+        data.join("objects.db").exists(),
+        "the data lives in {}",
+        data.display()
+    );
 
     // A second service on the same socket does not start: it is served by somebody else.
     let mut second = start(home.path(), &socket);
@@ -91,13 +107,22 @@ async fn it_serves_keeps_its_data_below_xdg_and_runs_once() {
         assert!(Instant::now() < deadline, "the second service kept running");
         std::thread::sleep(Duration::from_millis(50));
     };
-    assert!(!status.success(), "the second one must fail, it said {status}");
+    assert!(
+        !status.success(),
+        "the second one must fail, it said {status}"
+    );
     drop(first);
 }
 
 #[test]
 fn it_says_what_it_does_and_what_was_wrong() {
-    let run = |args: &[&str]| Command::new(BIN).args(args).stdin(Stdio::null()).output().unwrap();
+    let run = |args: &[&str]| {
+        Command::new(BIN)
+            .args(args)
+            .stdin(Stdio::null())
+            .output()
+            .unwrap()
+    };
     let help = run(&["--help"]);
     assert_eq!(help.status.code(), Some(0));
     assert!(String::from_utf8_lossy(&help.stdout).contains("tasks.capnp"));

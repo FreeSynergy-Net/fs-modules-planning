@@ -9,7 +9,9 @@ use std::io;
 use std::sync::Arc;
 
 use fs_objects::{Store, TursoStore};
-use fs_rpc::{ServerIdentity, ServerOptions, default_data_dir, prepare_data_dir, run_until_signal_callers};
+use fs_rpc::{
+    ServerIdentity, ServerOptions, default_data_dir, prepare_data_dir, run_until_signal_callers,
+};
 use fs_tasks_core::TaskRepo;
 
 use crate::root::Planning;
@@ -71,7 +73,9 @@ pub fn serve_command(args: impl IntoIterator<Item = OsString>) -> i32 {
             repo = repo.with_instance(instance);
         }
         Ok(Planning::new(Arc::new(repo), |why| {
-            eprintln!("fs-modules-planning: connection dropped, the system did not say who it is: {why:?}");
+            eprintln!(
+                "fs-modules-planning: connection dropped, the system did not say who it is: {why:?}"
+            );
         }))
     });
     match served {
