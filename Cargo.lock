@@ -700,8 +700,8 @@ dependencies = [
 
 [[package]]
 name = "fs-rpc"
-version = "0.0.3"
-source = "git+https://github.com/FreeSynergy/fs-rpc?tag=v0.0.3#93c7ca97e71ef386f66c84a7eb580c6576c2f6e9"
+version = "0.0.5"
+source = "git+https://github.com/FreeSynergy/fs-rpc?tag=v0.0.5#cbb584c0535e82078a78d9a4eca3fa3e0119aab3"
 dependencies = [
  "capnp",
  "capnp-rpc",
