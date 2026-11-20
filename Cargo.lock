@@ -302,28 +302,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "capnp-futures"
-version = "0.27.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3be9d2c64fef701b779960748be8c9d659bcecc6e01ecdd9e636c1d9584690cf"
-dependencies = [
- "capnp",
- "futures-channel",
- "futures-util",
-]
-
-[[package]]
-name = "capnp-rpc"
-version = "0.27.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78cc13745b71c62d9756537969000a394d559a55794e123f5fb955813d748d44"
-dependencies = [
- "capnp",
- "capnp-futures",
- "futures",
-]
-
-[[package]]
 name = "cc"
 version = "1.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -628,26 +606,25 @@ version = "0.0.22"
 source = "git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.0.22#7743056396ffa80bc77d3af9d1946229dd1f6155"
 dependencies = [
  "capnp",
- "capnp-rpc",
- "chrono",
- "fs-objects 0.0.1",
- "futures",
  "idna",
- "rustix 1.1.6",
- "tokio",
- "tokio-util",
- "uuid",
- "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "fs-interfaces"
+version = "0.0.29"
+source = "git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.0.29#4f5834db3ac382a9f5897d467e066ed151d1c6cf"
+dependencies = [
+ "capnp",
+ "fs-types 0.0.4",
 ]
 
 [[package]]
 name = "fs-jscalendar"
-version = "0.0.2"
-source = "git+https://github.com/FreeSynergy/fs-jscalendar?tag=v0.0.2#f3d651b73da2e440d24140df0bf4669a34c47cdc"
+version = "0.0.5"
 dependencies = [
  "calcard",
  "chrono",
- "fs-types",
+ "fs-types 0.0.4",
  "jiff",
  "jiff-tzdb",
  "serde",
@@ -658,12 +635,14 @@ dependencies = [
 
 [[package]]
 name = "fs-objects"
-version = "0.0.1"
-source = "git+https://github.com/FreeSynergy/fs-objects?tag=v0.0.1#7cf0f05e3a9835b582aa2ac22014f2a1f1bff200"
+version = "0.0.2"
+source = "git+https://github.com/FreeSynergy/fs-objects?tag=v0.0.2#cad3c46f436489712aa90c3268b3008ce43e8a2e"
 dependencies = [
  "async-trait",
  "base64",
  "chrono",
+ "fs-types 0.0.22",
+ "getrandom 0.3.4",
  "serde",
  "serde_json",
  "sha2",
@@ -676,14 +655,13 @@ dependencies = [
 
 [[package]]
 name = "fs-objects"
-version = "0.0.2"
-source = "git+https://github.com/FreeSynergy/fs-objects?tag=v0.0.2#cad3c46f436489712aa90c3268b3008ce43e8a2e"
+version = "0.0.8"
+source = "git+https://github.com/FreeSynergy/fs-objects?tag=v0.0.8#b638ef3ade2d07f8f03b6ad30c1e57c78f0bf87f"
 dependencies = [
  "async-trait",
  "base64",
  "chrono",
- "fs-types",
- "getrandom 0.3.4",
+ "rustix 1.1.6",
  "serde",
  "serde_json",
  "sha2",
@@ -700,7 +678,7 @@ version = "0.0.13"
 source = "git+https://github.com/FreeSynergy/fs-people?rev=358a8145b08dbea73dac040de69207f3ef90ad33#358a8145b08dbea73dac040de69207f3ef90ad33"
 dependencies = [
  "async-trait",
- "fs-types",
+ "fs-types 0.0.22",
 ]
 
 [[package]]
@@ -710,9 +688,9 @@ dependencies = [
  "async-trait",
  "capnp",
  "chrono",
- "fs-interfaces",
+ "fs-interfaces 0.0.29",
  "fs-jscalendar",
- "fs-objects 0.0.1",
+ "fs-objects 0.0.8",
  "serde",
  "serde_json",
  "tempfile",
@@ -729,26 +707,9 @@ dependencies = [
  "chrono-tz",
  "fs-objects 0.0.2",
  "fs-tasks-testdata",
- "fs-types",
+ "fs-types 0.0.22",
  "tokio",
  "turso",
-]
-
-[[package]]
-name = "fs-tasks-server"
-version = "0.0.1"
-dependencies = [
- "async-trait",
- "capnp",
- "capnp-rpc",
- "fs-interfaces",
- "fs-objects 0.0.1",
- "fs-tasks-core",
- "rustix 1.1.6",
- "serde_json",
- "tempfile",
- "tokio",
- "uuid",
 ]
 
 [[package]]
@@ -760,8 +721,22 @@ dependencies = [
  "chrono-tz",
  "fs-jscalendar",
  "fs-people-directory",
- "fs-types",
+ "fs-types 0.0.22",
  "tokio",
+]
+
+[[package]]
+name = "fs-types"
+version = "0.0.4"
+source = "git+https://github.com/FreeSynergy/fs-types?tag=v0.0.4#0dbc9b685746ea55ceb789fe1043a162e34ac387"
+dependencies = [
+ "capnp",
+ "chrono",
+ "geo-uri",
+ "idna",
+ "iri-string",
+ "oxilangtag",
+ "unicode-normalization",
 ]
 
 [[package]]
@@ -771,7 +746,7 @@ source = "git+https://github.com/FreeSynergy/fs-interfaces?tag=v0.0.22#774305639
 dependencies = [
  "capnp",
  "chrono",
- "fs-interfaces",
+ "fs-interfaces 0.0.22",
  "geo-uri",
  "iri-string",
  "oxilangtag",
@@ -785,69 +760,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6d5a32815ae3f33302d95fdcb2ce17862f8c65363dcfd29360480ba1001fc9c"
 
 [[package]]
-name = "futures"
-version = "0.3.34"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a31d2a3fbaaeb2af2368bbdd904aa8e812d3c04a1ee10d3171f52d556e5d0a3"
-dependencies = [
- "futures-channel",
- "futures-core",
- "futures-executor",
- "futures-io",
- "futures-sink",
- "futures-task",
- "futures-util",
-]
-
-[[package]]
-name = "futures-channel"
-version = "0.3.34"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1f9e3d69d39e4862ffed03ed071a76f9a13ba1d9109d355b0f0aa6b15e393c4"
-dependencies = [
- "futures-core",
- "futures-sink",
-]
-
-[[package]]
 name = "futures-core"
 version = "0.3.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92d699e522242e69e3003b94ecc1f960f3a5e015aa7c5d7486e65ad01dd94f5e"
-
-[[package]]
-name = "futures-executor"
-version = "0.3.34"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "031b47cf1a3c6cc8bc2fc76cd437f521619387907d469316e7c0bc278f1f5432"
-dependencies = [
- "futures-core",
- "futures-task",
- "futures-util",
-]
-
-[[package]]
-name = "futures-io"
-version = "0.3.34"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53c0fa8157de1303bfffdaa1cc2a673bfffb60102f76b0ef4441659124373fed"
-
-[[package]]
-name = "futures-macro"
-version = "0.3.34"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9fb9654ba8355388abeb8dcb4fc62f511300867002afc858860463bdd9fe0c44"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 3.0.9",
-]
-
-[[package]]
-name = "futures-sink"
-version = "0.3.34"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1944426bf7d03f1d14f708785e4b33efd750b36d48a157b836b3efc15ede8e1d"
 
 [[package]]
 name = "futures-task"
@@ -861,13 +777,8 @@ version = "0.3.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d50a92467f8ba5dd6e3ee5d4bd04d73ab2e4e1c44474a0674821dfce14b79bc"
 dependencies = [
- "futures-channel",
  "futures-core",
- "futures-io",
- "futures-macro",
- "futures-sink",
  "futures-task",
- "memchr",
  "pin-project-lite",
  "slab",
 ]
@@ -2428,21 +2339,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.9",
-]
-
-[[package]]
-name = "tokio-util"
-version = "0.7.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e464cf451ba96ebfc6f9b6542f17ee8b8956e33f1e40d9690624e59d7a7f8a4b"
-dependencies = [
- "bytes",
- "futures-core",
- "futures-io",
- "futures-sink",
- "futures-util",
- "pin-project-lite",
- "tokio",
 ]
 
 [[package]]
