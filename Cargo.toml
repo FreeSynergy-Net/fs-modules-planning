@@ -4,10 +4,6 @@ members = ["crates/fs-tasks-testdata", "crates/fs-tasks-local", "crates/fs-tasks
 # Superseded by fs-modules-planning (fs_interfaces::rpc is gone after fs-interfaces 0.0.28); needs the old pins.
 exclude = ["crates/fs-tasks-server"]
 
-# WIP patch (remove when the lifted fs-jscalendar tag exists): the lifted head (fs-types v0.0.4) of fs-jscalendar.
-[patch."https://github.com/FreeSynergy/fs-jscalendar"]
-fs-jscalendar = { path = "/srv/FreeSynergy/.scratch/api-runner/wt/w2lift/crates/fs-jscalendar" }
-
 [workspace.package]
 version = "0.0.1"
 authors = ["FreeSynergy <support@freesynergy.net>"]

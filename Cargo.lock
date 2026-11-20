@@ -620,7 +620,24 @@ dependencies = [
 
 [[package]]
 name = "fs-jscalendar"
+version = "0.0.2"
+source = "git+https://github.com/FreeSynergy/fs-jscalendar?tag=v0.0.2#f3d651b73da2e440d24140df0bf4669a34c47cdc"
+dependencies = [
+ "calcard",
+ "chrono",
+ "fs-types 0.0.22",
+ "jiff",
+ "jiff-tzdb",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "uuid",
+]
+
+[[package]]
+name = "fs-jscalendar"
 version = "0.0.5"
+source = "git+https://github.com/FreeSynergy/fs-jscalendar?tag=v0.0.5#8806df53f20767a29dc7e4a944d11079585da442"
 dependencies = [
  "calcard",
  "chrono",
@@ -689,7 +706,7 @@ dependencies = [
  "capnp",
  "chrono",
  "fs-interfaces 0.0.29",
- "fs-jscalendar",
+ "fs-jscalendar 0.0.5",
  "fs-objects 0.0.8",
  "serde",
  "serde_json",
@@ -719,7 +736,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "chrono-tz",
- "fs-jscalendar",
+ "fs-jscalendar 0.0.2",
  "fs-people-directory",
  "fs-types 0.0.22",
  "tokio",
