@@ -6,8 +6,15 @@ use fs_interfaces::tasks_capnp::{boards, items, tasks};
 use tokio::task::LocalSet;
 
 async fn root(service: &common::Service) -> (fs_rpc::Connection<tasks::Client>, boards::Client) {
-    let connection = fs_rpc::connect::<tasks::Client>(&service.socket).await.unwrap();
-    let boards = connection.client.boards_request().send().pipeline.get_boards();
+    let connection = fs_rpc::connect::<tasks::Client>(&service.socket)
+        .await
+        .unwrap();
+    let boards = connection
+        .client
+        .boards_request()
+        .send()
+        .pipeline
+        .get_boards();
     (connection, boards)
 }
 
@@ -78,11 +85,24 @@ async fn a_stale_revision_is_a_conflict_and_writes_nothing() {
             let first = edit(revision, "First").await.unwrap();
             let new_revision = first.get().unwrap().get_board().unwrap().get_revision();
             assert_ne!(new_revision, revision, "a write changes the revision");
-            let e = edit(revision, "Stale").await.err().expect("a stale revision must fail");
+            let e = edit(revision, "Stale")
+                .await
+                .err()
+                .expect("a stale revision must fail");
             assert!(e.to_string().contains("conflict:"), "{e}");
             let list = boards.list_request().send().promise.await.unwrap();
             let board = list.get().unwrap().get_boards().unwrap().get(0);
-            assert_eq!(board.get_columns().unwrap().get(0).get_name().unwrap().to_str().unwrap(), "First");
+            assert_eq!(
+                board
+                    .get_columns()
+                    .unwrap()
+                    .get(0)
+                    .get_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap(),
+                "First"
+            );
         })
         .await;
 }
@@ -102,7 +122,12 @@ async fn a_board_that_is_not_valid_is_rejected() {
             set_id(p.reborrow().init_id(), id_of(board));
             p.set_revision(board.get_revision());
             let _ = p.init_columns(0); // no column at all
-            let e = request.send().promise.await.err().expect("a board without a column is refused");
+            let e = request
+                .send()
+                .promise
+                .await
+                .err()
+                .expect("a board without a column is refused");
             assert!(e.to_string().contains("rejected:"), "{e}");
         })
         .await;

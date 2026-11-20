@@ -5,10 +5,17 @@ use fs_modules_planning_client::Catalog;
 #[test]
 fn the_shipped_catalog_maps_the_commands_to_the_calls_of_the_decision() {
     let catalog = Catalog::bundled();
-    let call = |id: &str| catalog.command(id).map(|c| (c.call.as_str(), c.capability.as_str()));
+    let call = |id: &str| {
+        catalog
+            .command(id)
+            .map(|c| (c.call.as_str(), c.capability.as_str()))
+    };
     assert_eq!(call("create"), Some(("Items.create", "task.create")));
     assert_eq!(call("move"), Some(("Boards.moveCard", "card.move")));
-    assert_eq!(call("column.create"), Some(("Boards.editColumns", "column.create")));
+    assert_eq!(
+        call("column.create"),
+        Some(("Boards.editColumns", "column.create"))
+    );
     assert_eq!(call("delete"), Some(("Items.delete", "task.delete")));
     assert_eq!(catalog.ids().count(), 4, "claim, release, note come later");
 }

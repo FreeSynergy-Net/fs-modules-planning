@@ -58,7 +58,9 @@ fn write_board(mut out: board::Builder<'_>, entry: &BoardEntry) -> capnp::Result
     out.set_name(entry.board.name.as_str());
     out.set_label(entry.board.label.as_deref().unwrap_or(""));
     out.set_revision(entry.revision().get());
-    let mut columns = out.reborrow().init_columns(count(entry.board.columns.len())?);
+    let mut columns = out
+        .reborrow()
+        .init_columns(count(entry.board.columns.len())?);
     for (i, c) in (0u32..).zip(&entry.board.columns) {
         write_column(columns.reborrow().get(i), c);
     }
@@ -182,10 +184,9 @@ impl boards::Server for BoardsImpl {
         let column = p.get_column()?.to_string()?;
         let index = usize::try_from(p.get_index()).ok();
         let repo = self.boards.clone();
-        let entry =
-            run_to_end(async move { repo.board_move_card(id, &uid, &column, index).await })
-                .await?
-                .map_err(rpc_error)?;
+        let entry = run_to_end(async move { repo.board_move_card(id, &uid, &column, index).await })
+            .await?
+            .map_err(rpc_error)?;
         write_board(results.get().init_board(), &entry)
     }
 }

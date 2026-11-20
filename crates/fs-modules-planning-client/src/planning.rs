@@ -209,7 +209,10 @@ impl Planning {
     }
 
     /// Replace the columns of the board by what `change` makes of them (one compare-and-set on the revision just read).
-    async fn edit(&mut self, change: impl FnOnce(&mut Snapshot) -> Result<(), Error>) -> Result<(), Error> {
+    async fn edit(
+        &mut self,
+        change: impl FnOnce(&mut Snapshot) -> Result<(), Error>,
+    ) -> Result<(), Error> {
         let mut snapshot = self.snapshot().await?;
         change(&mut snapshot)?;
         let mut request = self.boards().edit_columns_request();
@@ -276,9 +279,19 @@ fn column<'a>(snapshot: &'a mut Snapshot, id: &str) -> Result<&'a mut ColumnData
 fn unused_id(name: &str, columns: &[ColumnData]) -> String {
     let mut slug: String = name
         .chars()
-        .map(|c| if c.is_alphanumeric() { c.to_ascii_lowercase() } else { '-' })
+        .map(|c| {
+            if c.is_alphanumeric() {
+                c.to_ascii_lowercase()
+            } else {
+                '-'
+            }
+        })
         .collect();
-    slug = slug.split('-').filter(|p| !p.is_empty()).collect::<Vec<_>>().join("-");
+    slug = slug
+        .split('-')
+        .filter(|p| !p.is_empty())
+        .collect::<Vec<_>>()
+        .join("-");
     if slug.is_empty() {
         slug = "column".into();
     }

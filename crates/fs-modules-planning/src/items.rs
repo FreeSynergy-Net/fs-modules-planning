@@ -34,11 +34,7 @@ impl items::Server for ItemsImpl {
         Ok(())
     }
 
-    async fn get(
-        self: Rc<Self>,
-        params: items::GetParams,
-        mut results: items::GetResults,
-    ) -> Done {
+    async fn get(self: Rc<Self>, params: items::GetParams, mut results: items::GetResults) -> Done {
         let id = read_id(params.get()?.get_id()?)?;
         let found = self.items.get(id).await.map_err(rpc_error)?;
         let mut out = results.get();

@@ -53,10 +53,15 @@ pub(crate) fn write_envelope(mut out: envelope::Builder<'_>, e: &Envelope) {
     out.reborrow()
         .init_updated()
         .set_unix_millis(to_millis(e.updated));
-    texts(out.reborrow().init_sensitive(len(&e.sensitive)), &e.sensitive);
+    texts(
+        out.reborrow().init_sensitive(len(&e.sensitive)),
+        &e.sensitive,
+    );
     out.set_describes(e.describes.as_deref().unwrap_or(""));
     if let Some(t) = e.start_time {
-        out.reborrow().init_start_time().set_unix_millis(to_millis(t));
+        out.reborrow()
+            .init_start_time()
+            .set_unix_millis(to_millis(t));
     }
     if let Some(t) = e.end_time {
         out.reborrow().init_end_time().set_unix_millis(to_millis(t));

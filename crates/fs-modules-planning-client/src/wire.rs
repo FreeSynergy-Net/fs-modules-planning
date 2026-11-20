@@ -110,7 +110,12 @@ pub(crate) fn column_of(
 pub(crate) fn read_title(t: task::Reader<'_>) -> capnp::Result<Option<(String, String)>> {
     let value: serde_json::Value = serde_json::from_str(t.get_jscalendar()?.to_str()?)
         .map_err(|e| capnp::Error::failed(e.to_string()))?;
-    let text = |key: &str| value.get(key).and_then(serde_json::Value::as_str).map(str::to_string);
+    let text = |key: &str| {
+        value
+            .get(key)
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_string)
+    };
     Ok(text("uid").map(|uid| (uid, text("title").unwrap_or_default())))
 }
 
