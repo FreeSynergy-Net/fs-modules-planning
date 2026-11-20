@@ -2,10 +2,11 @@
 
 Version = tag.
 
-## Unreleased
+## 0.0.2 - 2026-11-20
 
 English
 
+- Version 0.0.1 to 0.0.2 in `[workspace.package]` (all crates inherit it); no code change.
 - New: the planning module service `fs-modules-planning` (one process per person, Unix socket through fs-rpc, data in `$XDG_DATA_HOME/freesynergy/modules/planning/`, the actor only from the connection) serving `tasks.capnp`: `Items` (create, get, getByUid, delete, list) and `Boards` (create, list, layout, editColumns with compare-and-set, moveCard) over the `Boards` trait of `fs-tasks-core`.
 - New: `fs-modules-planning-client` (columns, add card, move card, add column, rename, limit, `can(operation)` from the reported capabilities, `ensure_service`) and the command catalog `catalog/commands.json` (command id to contract call).
 - `fs-tasks-core`: `TaskRepo::as_actor` (a view written as another actor, one per connection).
@@ -13,6 +14,7 @@ English
 
 Auf Deutsch
 
+- Version 0.0.1 auf 0.0.2 in `[workspace.package]` (alle Crates erben sie); keine Code-Aenderung.
 - Neu: der Dienst des Planungsmoduls `fs-modules-planning` (ein Prozess je Person, Unix-Socket ueber fs-rpc, Daten unter `$XDG_DATA_HOME/freesynergy/modules/planning/`, der Akteur nur aus der Verbindung) mit `tasks.capnp`: `Items` (create, get, getByUid, delete, list) und `Boards` (create, list, layout, editColumns mit Compare-and-Set, moveCard) ueber den `Boards`-Trait von `fs-tasks-core`.
 - Neu: `fs-modules-planning-client` (Spalten, Karte anlegen, Karte verschieben, Spalte anlegen, umbenennen, Limit, `can(Operation)` aus den gemeldeten Faehigkeiten, `ensure_service`) und der Befehlskatalog `catalog/commands.json` (Befehls-ID zu Vertragsaufruf).
 - `fs-tasks-core`: `TaskRepo::as_actor` (eine Sicht, die als anderer Akteur schreibt, je Verbindung eine).
