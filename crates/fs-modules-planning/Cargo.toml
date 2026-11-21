@@ -19,8 +19,8 @@ path = "src/main.rs"
 # The core is used without its `contract` feature: the service needs none of its filter conversion.
 fs-tasks-core = { path = "../fs-tasks-core" }
 # One source per library: the same tags as the core and fs-rpc.
-fs-rpc = { git = "https://github.com/FreeSynergy/fs-rpc", tag = "v0.0.5" }
-fs-interfaces = { git = "https://github.com/FreeSynergy/fs-interfaces", tag = "v0.0.29" }
+fs-rpc = { git = "https://github.com/FreeSynergy/fs-rpc", tag = "v0.0.6" }
+fs-interfaces = { git = "https://github.com/FreeSynergy/fs-interfaces", tag = "v0.0.30" }
 fs-objects = { git = "https://github.com/FreeSynergy/fs-objects", tag = "v0.0.8" }
 capnp = "0.27"
 capnp-rpc = "0.27"

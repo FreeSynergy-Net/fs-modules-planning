@@ -2,6 +2,18 @@
 
 Version = tag.
 
+## 0.0.3 - 2026-11-21
+
+English
+
+- Version 0.0.2 to 0.0.3 in `[workspace.package]`; no code change.
+- Pins lifted: fs-interfaces v0.0.29 to v0.0.30 (fs-tasks-core, fs-modules-planning, fs-modules-planning-client) and fs-rpc v0.0.5 to v0.0.6 (fs-modules-planning, fs-modules-planning-client); lock updated.
+
+Auf Deutsch
+
+- Version 0.0.2 auf 0.0.3 in `[workspace.package]`; keine Code-Aenderung.
+- Pins gehoben: fs-interfaces v0.0.29 auf v0.0.30 (fs-tasks-core, fs-modules-planning, fs-modules-planning-client) und fs-rpc v0.0.5 auf v0.0.6 (fs-modules-planning, fs-modules-planning-client); Lock nachgezogen.
+
 ## 0.0.2 - 2026-11-20
 
 English

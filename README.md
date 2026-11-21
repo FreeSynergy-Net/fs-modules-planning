@@ -6,7 +6,7 @@ FreeSynergy planning modules: dependencies (RFC 9253), critical path, hand order
 
 ## Status
 
-Latest tag: v0.0.1; the next release is 0.0.2.
+Latest tag: v0.0.2; the next release is 0.0.3.
 
 Today this repository is ONE tasks provider plus ONE test kit, moved unchanged from [fs-tasks](https://github.com/FreeSynergy/fs-tasks) (main `ae7be9da0168ed2c05eeca4ce0ff48c4c7a4dae0`): `crates/fs-tasks-local` (provider of the `Tasks` trait `tasks_v1` over typed fs-objects v5 tables) and `crates/fs-tasks-testdata` (fake, conformance rules, sample data) with the type `Task`, under their old names. Both crates have version 0.0.1. All 150 files are byte for byte equal to the source (list of sha256: `docs/insel-umzug-sha256.txt`). Git pins are as in fs-tasks (fs-objects v0.0.2, fs-types = fs-interfaces v0.0.22, fs-jscalendar v0.0.2, fs-people rev 358a8145).
 
@@ -36,4 +36,4 @@ Licence: MIT OR Apache-2.0.
 
 ## Auf Deutsch
 
-FreeSynergy-Planungsmodule: Abhaengigkeiten (RFC 9253), kritischer Pfad, Handreihenfolge, Checklisten, Fortschrittszustaende, Ansprueche und das Aufgaben-Datenmodul (JSCalendar Task, RFC 8984; VTODO, RFC 5545). Mit Hilfe von Claude (KI) gebaut. Lizenz MIT OR Apache-2.0. Stand: Heute ist das Repository EIN Aufgaben-Provider (`fs-tasks-local`) plus EIN Testbausatz (`fs-tasks-testdata`) mit dem Typ Task, unveraendert aus fs-tasks verschoben; beide Crates haben die Version 0.0.1. Bereitschaft, Rang, Checkliste, Fortschritt und Anspruch gibt es als Code nur innerhalb des Providers, keine davon als eigenes Modul. Terminplan und kritischer Pfad fehlen ganz, ebenso die Fortschritts-Voreinstellungen rfc8984 und freesynergy. Neuester Tag: v0.0.1; das naechste Release ist 0.0.2. Die Umbenennung zu `fs-todo` bleibt ein spaeterer Schritt; ein Bausatz `fs-planning` entsteht erst, wenn mindestens zwei Programme die Teile nutzen (ADR 0101 E2).
+FreeSynergy-Planungsmodule: Abhaengigkeiten (RFC 9253), kritischer Pfad, Handreihenfolge, Checklisten, Fortschrittszustaende, Ansprueche und das Aufgaben-Datenmodul (JSCalendar Task, RFC 8984; VTODO, RFC 5545). Mit Hilfe von Claude (KI) gebaut. Lizenz MIT OR Apache-2.0. Stand: Heute ist das Repository EIN Aufgaben-Provider (`fs-tasks-local`) plus EIN Testbausatz (`fs-tasks-testdata`) mit dem Typ Task, unveraendert aus fs-tasks verschoben; beide Crates haben die Version 0.0.1. Bereitschaft, Rang, Checkliste, Fortschritt und Anspruch gibt es als Code nur innerhalb des Providers, keine davon als eigenes Modul. Terminplan und kritischer Pfad fehlen ganz, ebenso die Fortschritts-Voreinstellungen rfc8984 und freesynergy. Neuester Tag: v0.0.2; das naechste Release ist 0.0.3. Die Umbenennung zu `fs-todo` bleibt ein spaeterer Schritt; ein Bausatz `fs-planning` entsteht erst, wenn mindestens zwei Programme die Teile nutzen (ADR 0101 E2).
