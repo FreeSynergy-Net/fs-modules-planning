@@ -9,6 +9,7 @@ English
 - Fix after review (NEIN): the capability ids the service reports are the ids of the contract again (`task.create`, `card.move`, `board.open` ...); only `catalog/commands.json` keeps the prefix `planning.` (the client maps it with `Command::contract_capability`). Test: the service reports exactly the contract ids.
 - `catalog/commands.json` lists only `planning.move`; `planning.create`, `planning.column.create`, `planning.delete` are out (no service behind them, they come with the write path).
 - `catalog/forms.json`: `facts` has 4 fields (`progress` out), as `cards-in-columns@1.0` allows (0..4).
+- `catalog/forms.json`: `due` is `date-time` (was `datetime`, a word the host does not know); test: every field type is a word of the host reader.
 - `invoke` refuses unknown and doubled arguments (`form-source-unknown-argument`, `form-source-duplicate-argument`), a missing or too long `record` and an unknown task; a cancelled run is `form-source-internal`, not bad-arguments; a board name that is not unique is refused (the id wins).
 - Priority 0 (RFC 8984: undefined) is no fact. Tests for `index`, `may` and the paging cursor.
 - Version: `catalog/commands.json` `0.0.1` is the version of the command set, the workspace `0.0.3` the version of the crates (and the tag). Not a step back, two numbers.
@@ -23,6 +24,7 @@ Auf Deutsch
 - Korrektur nach Review (NEIN): Die Faehigkeiten, die der Dienst meldet, sind wieder die ids des Vertrags (`task.create`, `card.move`, `board.open` ...); nur `catalog/commands.json` behaelt den Praefix `planning.` (der Client uebersetzt mit `Command::contract_capability`). Test: Der Dienst meldet genau die Vertrags-ids.
 - `catalog/commands.json` fuehrt nur noch `planning.move`; `planning.create`, `planning.column.create`, `planning.delete` sind heraus (kein Dienst dahinter, sie kommen mit dem Schreibweg).
 - `catalog/forms.json`: `facts` hat 4 Felder (`progress` heraus), wie `cards-in-columns@1.0` erlaubt (0..4).
+- `catalog/forms.json`: `due` ist `date-time` (vorher `datetime`, ein Wort, das der Host nicht kennt); Test: jede Feldart ist ein Wort des Host-Lesers.
 - `invoke` lehnt unbekannte und doppelte Argumente ab (`form-source-unknown-argument`, `form-source-duplicate-argument`), ebenso fehlendes oder zu langes `record` und unbekannte Aufgabe; ein abgebrochener Lauf ist `form-source-internal`, nicht bad-arguments; ein nicht eindeutiger Boardname wird abgelehnt (die id gilt zuerst).
 - Prioritaet 0 (RFC 8984: undefiniert) ist kein Fakt. Tests fuer `index`, `may` und den Seiten-Cursor.
 - Version: `catalog/commands.json` `0.0.1` ist die Version des Befehlssatzes, der Workspace `0.0.3` die Version der Crates (und des Tags). Kein Rueckschritt, zwei Zahlen.

@@ -222,6 +222,24 @@ fn the_form_names_at_most_four_facts_and_the_capabilities_are_the_contract_ids()
     for id in fs_modules_planning::CAPABILITIES {
         assert!(!id.starts_with("planning."), "{id}");
     }
+    // the basic type words the host reader knows (fs-starter `sources/declared.rs` basic(), words of fs-forms-bind); a stand-in for
+    // the host check until the one conformance test exists (card fs-conformance)
+    let known = [
+        "text",
+        "email",
+        "number",
+        "bool",
+        "date",
+        "date-time",
+        "choice",
+        "reference",
+        "keywords",
+        "link",
+        "image",
+    ];
+    for (name, kind) in forms[0]["fields"].as_object().unwrap() {
+        assert!(known.contains(&kind.as_str().unwrap()), "{name}: {kind}");
+    }
 }
 
 #[tokio::test(flavor = "current_thread")]

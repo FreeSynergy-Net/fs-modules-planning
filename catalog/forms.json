@@ -14,7 +14,7 @@
     "fields": {
       "column": "text",
       "title": "text",
-      "due": "datetime",
+      "due": "date-time",
       "progress": "text",
       "board": "text",
       "priority": "text",
