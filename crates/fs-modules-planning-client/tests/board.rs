@@ -37,13 +37,13 @@ async fn the_service_reports_what_the_host_may_unlock() {
             ] {
                 assert!(planning.can(op), "{op:?}");
             }
+            assert!(planning.can_command("planning.move"));
             for id in [
                 "planning.create",
-                "planning.move",
                 "planning.column.create",
                 "planning.delete",
             ] {
-                assert!(planning.can_command(id), "{id}");
+                assert!(!planning.can_command(id), "{id}: no service behind it");
             }
             assert!(
                 !planning.can_command("planning.claim"),

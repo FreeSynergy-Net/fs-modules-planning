@@ -17,6 +17,19 @@ pub struct Command {
     pub capability: String,
 }
 
+impl Command {
+    /// The capability id as the SERVICE reports it (the id of the contract `tasks.capnp`, `card.move`). The file carries it with the
+    /// prefix of the module (`planning.card.move`) because the host asks for that there; the contract has no such prefix.
+    #[must_use]
+    pub fn contract_capability(&self) -> &str {
+        let module = crate::ensure::SOCKET_PROGRAM;
+        self.capability
+            .strip_prefix(module)
+            .and_then(|rest| rest.strip_prefix('.'))
+            .unwrap_or(&self.capability)
+    }
+}
+
 /// The catalog: command ids to commands.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Catalog {

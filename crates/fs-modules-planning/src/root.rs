@@ -22,15 +22,15 @@ pub const CONTRACT_VERSION: &str = "tasks 0.1 (draft)";
 
 /// The capability ids this service serves (`Items`: create, get, getByUid, delete, list; `Boards`: all five methods).
 pub const CAPABILITIES: [&str; 9] = [
-    "planning.task.create",
-    "planning.task.read",
-    "planning.task.delete",
-    "planning.board.open",
-    "planning.board.create",
-    "planning.column.create",
-    "planning.column.limit",
-    "planning.card.move",
-    "planning.board.layout",
+    "task.create",
+    "task.read",
+    "task.delete",
+    "board.open",
+    "board.create",
+    "column.create",
+    "column.limit",
+    "card.move",
+    "board.layout",
 ];
 
 /// The actor written to the log and to `attributedTo` for a caller: from the system's id of the caller only.

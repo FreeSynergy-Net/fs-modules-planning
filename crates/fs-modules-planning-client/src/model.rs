@@ -49,10 +49,10 @@ impl Operation {
     pub fn capability(self) -> &'static str {
         match self {
             // The contract serves a rename with `editColumns`, as the creation of a column.
-            Self::AddColumn | Self::Rename => "planning.column.create",
-            Self::Limit => "planning.column.limit",
-            Self::Move => "planning.card.move",
-            Self::AddCard => "planning.task.create",
+            Self::AddColumn | Self::Rename => "column.create",
+            Self::Limit => "column.limit",
+            Self::Move => "card.move",
+            Self::AddCard => "task.create",
         }
     }
 }

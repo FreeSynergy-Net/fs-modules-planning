@@ -6,18 +6,29 @@ Version = tag.
 
 English
 
+- Fix after review (NEIN): the capability ids the service reports are the ids of the contract again (`task.create`, `card.move`, `board.open` ...); only `catalog/commands.json` keeps the prefix `planning.` (the client maps it with `Command::contract_capability`). Test: the service reports exactly the contract ids.
+- `catalog/commands.json` lists only `planning.move`; `planning.create`, `planning.column.create`, `planning.delete` are out (no service behind them, they come with the write path).
+- `catalog/forms.json`: `facts` has 4 fields (`progress` out), as `cards-in-columns@1.0` allows (0..4).
+- `invoke` refuses unknown and doubled arguments (`form-source-unknown-argument`, `form-source-duplicate-argument`), a missing or too long `record` and an unknown task; a cancelled run is `form-source-internal`, not bad-arguments; a board name that is not unique is refused (the id wins).
+- Priority 0 (RFC 8984: undefined) is no fact. Tests for `index`, `may` and the paging cursor.
+- Version: `catalog/commands.json` `0.0.1` is the version of the command set, the workspace `0.0.3` the version of the crates (and the tag). Not a step back, two numbers.
 - The module is named `planning`: socket `planning.sock` (the old name `modules-planning.sock` is gone, no alias), one constant `SOCKET_PROGRAM` in the client, used by the service; data folder `modules/planning`.
 - `FormSource` (level 1) next to `tasks.capnp` on the same socket: `hello`, `page` for `cards-in-columns@1.0`, `invoke` for `planning.move` with text values; `catalog/forms.json`; `page` also sends `priority`, `participants`, `keywords`, `description` of the task when it has them.
-- `catalog/commands.json` (version `0.0.1`) fulfils the duties of the host: `contract` = `module` = `planning`, `scope` `own-contract`, two-part command ids (`planning.move`), capabilities with the prefix `planning.` (also the ids the service reports), `access` and `help` (en, de) per command. `claim`, `release`, `note` are NOT in it (no service behind them).
-- Client tests follow (ids `planning.*`).
+- `catalog/commands.json` (version `0.0.1`) fulfils the duties of the host: `contract` = `module` = `planning`, `scope` `own-contract`, two-part command ids (`planning.move`), capabilities with the prefix `planning.`, `access` and `help` (en, de) per command. `claim`, `release`, `note` are NOT in it (no service behind them).
 - Heartbeat of fs-rpc started with the service (Unix).
 - Pins: fs-rpc v0.0.7, fs-interfaces v0.0.31.
 
 Auf Deutsch
 
+- Korrektur nach Review (NEIN): Die Faehigkeiten, die der Dienst meldet, sind wieder die ids des Vertrags (`task.create`, `card.move`, `board.open` ...); nur `catalog/commands.json` behaelt den Praefix `planning.` (der Client uebersetzt mit `Command::contract_capability`). Test: Der Dienst meldet genau die Vertrags-ids.
+- `catalog/commands.json` fuehrt nur noch `planning.move`; `planning.create`, `planning.column.create`, `planning.delete` sind heraus (kein Dienst dahinter, sie kommen mit dem Schreibweg).
+- `catalog/forms.json`: `facts` hat 4 Felder (`progress` heraus), wie `cards-in-columns@1.0` erlaubt (0..4).
+- `invoke` lehnt unbekannte und doppelte Argumente ab (`form-source-unknown-argument`, `form-source-duplicate-argument`), ebenso fehlendes oder zu langes `record` und unbekannte Aufgabe; ein abgebrochener Lauf ist `form-source-internal`, nicht bad-arguments; ein nicht eindeutiger Boardname wird abgelehnt (die id gilt zuerst).
+- Prioritaet 0 (RFC 8984: undefiniert) ist kein Fakt. Tests fuer `index`, `may` und den Seiten-Cursor.
+- Version: `catalog/commands.json` `0.0.1` ist die Version des Befehlssatzes, der Workspace `0.0.3` die Version der Crates (und des Tags). Kein Rueckschritt, zwei Zahlen.
 - Das Modul heisst `planning`: Socket `planning.sock` (der alte Name `modules-planning.sock` entfaellt ersatzlos), eine Konstante `SOCKET_PROGRAM` im Client, vom Dienst benutzt; Datenordner `modules/planning`.
 - `FormSource` (Stufe 1) neben `tasks.capnp` auf demselben Socket: `hello`, `page` fuer `cards-in-columns@1.0`, `invoke` fuer `planning.move` mit Textwerten; `catalog/forms.json`; `page` sendet zusaetzlich `priority`, `participants`, `keywords`, `description` der Aufgabe, wenn sie sie hat.
-- `catalog/commands.json` (Version `0.0.1`) erfuellt die Pflichten des Hosts: `contract` = `module` = `planning`, `scope` `own-contract`, zweiteilige Befehls-ids (`planning.move`), Faehigkeiten mit Praefix `planning.` (auch die vom Dienst gemeldeten), `access` und `help` (en, de) je Befehl. `claim`, `release`, `note` stehen NICHT darin (kein Dienst dahinter).
+- `catalog/commands.json` (Version `0.0.1`) erfuellt die Pflichten des Hosts: `contract` = `module` = `planning`, `scope` `own-contract`, zweiteilige Befehls-ids (`planning.move`), Faehigkeiten mit Praefix `planning.`, `access` und `help` (en, de) je Befehl. `claim`, `release`, `note` stehen NICHT darin (kein Dienst dahinter).
 - Client-Tests nachgezogen (ids `planning.*`).
 - Herzschlag von fs-rpc mit dem Dienst gestartet (Unix).
 - Pins: fs-rpc v0.0.7, fs-interfaces v0.0.31.

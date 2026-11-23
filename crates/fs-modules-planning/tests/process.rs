@@ -10,6 +10,19 @@ use std::time::{Duration, Instant};
 use fs_interfaces::tasks_capnp::tasks;
 use tokio::task::LocalSet;
 
+/// The capability ids of the contract `tasks.capnp` (fs-interfaces schema/tasks.capnp), what the service must report: no prefix.
+const CONTRACT_IDS: [&str; 9] = [
+    "task.create",
+    "task.read",
+    "task.delete",
+    "board.open",
+    "board.create",
+    "column.create",
+    "column.limit",
+    "card.move",
+    "board.layout",
+];
+
 const BIN: &str = env!("CARGO_BIN_EXE_fs-modules-planning");
 
 struct Running(Child);
@@ -84,11 +97,12 @@ async fn it_serves_keeps_its_data_below_xdg_and_runs_once() {
                 .iter()
                 .map(|i| i.unwrap().to_string().unwrap())
                 .collect();
-            assert!(
-                ids.iter().any(|i| i == "planning.board.open")
-                    && ids.iter().any(|i| i == "planning.card.move"),
-                "{ids:?}"
-            );
+            // exactly the ids of the contract (tasks.capnp), never with the prefix of the module
+            let mut want: Vec<&str> = CONTRACT_IDS.to_vec();
+            want.sort_unstable();
+            let mut got: Vec<&str> = ids.iter().map(String::as_str).collect();
+            got.sort_unstable();
+            assert_eq!(got, want);
             // the heartbeat of the service answers next to the socket (a duty of every module service)
             fs_rpc::ask_beat(&socket, Duration::from_secs(2))
                 .await

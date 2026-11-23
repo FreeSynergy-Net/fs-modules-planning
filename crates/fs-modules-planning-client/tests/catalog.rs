@@ -11,24 +11,15 @@ fn the_shipped_catalog_maps_the_commands_to_the_calls_of_the_decision() {
             .map(|c| (c.call.as_str(), c.capability.as_str()))
     };
     assert_eq!(
-        call("planning.create"),
-        Some(("Items.create", "planning.task.create"))
-    );
-    assert_eq!(
         call("planning.move"),
         Some(("Boards.moveCard", "planning.card.move"))
     );
-    assert_eq!(
-        call("planning.column.create"),
-        Some(("Boards.editColumns", "planning.column.create"))
-    );
-    assert_eq!(
-        call("planning.delete"),
-        Some(("Items.delete", "planning.task.delete"))
-    );
-    // claim, release and note are NOT in the file: a command without a service behind it would be a lie
-    assert_eq!(catalog.ids().count(), 4);
+    // only what a service serves: `FormSource.invoke` serves `planning.move`; create, column.create, delete come with the write path (card SCHREIBWEG)
+    assert_eq!(catalog.ids().count(), 1);
     for id in [
+        "planning.create",
+        "planning.column.create",
+        "planning.delete",
         "planning.claim",
         "planning.release",
         "planning.note",
@@ -65,7 +56,7 @@ fn the_file_keeps_the_duties_of_the_host() {
                 .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-' || b == b'_')
     };
     let commands = doc["commands"].as_array().unwrap();
-    assert!(commands.len() >= 4);
+    assert!(!commands.is_empty());
     let space = format!("{module}.");
     for c in commands {
         let id = c["id"].as_str().unwrap();
@@ -89,5 +80,28 @@ fn the_file_keeps_the_duties_of_the_host() {
         ] {
             assert!(!key.as_str().unwrap_or("").is_empty(), "{id}");
         }
+    }
+}
+
+/// The file names the capability with the prefix of the module (the host asks for it there); the service reports the ids of the
+/// contract. The two worlds meet in `contract_capability`, and every command of the file is one the service reports.
+#[test]
+fn the_file_and_the_service_use_two_kinds_of_ids_and_they_meet() {
+    let catalog = Catalog::bundled();
+    for id in catalog.ids() {
+        let c = catalog.command(id).unwrap();
+        assert!(c.capability.starts_with("planning."), "{id}");
+        let contract = c.contract_capability();
+        assert!(!contract.starts_with("planning."), "{id}: {contract}");
+        assert!(
+            fs_modules_planning::CAPABILITIES.contains(&contract),
+            "{id}: the service does not report {contract}"
+        );
+    }
+    for id in fs_modules_planning::CAPABILITIES {
+        assert!(
+            !id.starts_with("planning."),
+            "{id}: the service reports contract ids"
+        );
     }
 }

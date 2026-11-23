@@ -7,7 +7,7 @@
       "cards": "Task",
       "column": "column",
       "title": "title",
-      "facts": ["due", "progress", "priority", "participants", "keywords"],
+      "facts": ["due", "priority", "participants", "keywords"],
       "lane": "board",
       "move": "planning.move"
     },

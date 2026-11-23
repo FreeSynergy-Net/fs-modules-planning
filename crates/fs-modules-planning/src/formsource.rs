@@ -4,6 +4,7 @@
 //! Pattern: Adapter (the board layout and the tasks of the core, as records by the field names of `catalog/forms.json`). The one capability that is `Tasks` and `FormSource` is in `both.rs`. Everything the person may do is checked by the core as the caller of the connection; `invoke` only knows the commands
 //! of `catalog/commands.json`, and the values of a command are text (the wire of `FormSource` has no other kind).
 
+use std::collections::BTreeMap;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -29,6 +30,12 @@ const UNKNOWN_FORM: &str = "form-source-unknown-form";
 const UNKNOWN_SCOPE: &str = "form-source-unknown-scope";
 const UNKNOWN_COMMAND: &str = "form-source-unknown-command";
 const BAD_ARGS: &str = "form-source-bad-arguments";
+const UNKNOWN_ARG: &str = "form-source-unknown-argument";
+const DUPLICATE_ARG: &str = "form-source-duplicate-argument";
+const INTERNAL: &str = "form-source-internal";
+
+/// The longest `record` (uid of a card) `invoke` takes.
+const UID_MAX: usize = 255;
 
 pub(crate) struct FormSourceImpl {
     pub(crate) repo: Arc<TaskRepo>,
@@ -40,17 +47,35 @@ fn problem(kind: &str, detail: impl Into<String>, status: u16) -> Problem {
     Problem::new(kind, kind, detail, status)
 }
 
-/// The text value `path` of a request, if it is there.
-fn arg(
+/// The text values of a request by path. A path that is not in `allowed` or that comes twice is refused with its own problem and
+/// the reason, never silently dropped.
+fn text_args(
     list: capnp::struct_list::Reader<'_, value::Owned>,
-    path: &str,
-) -> capnp::Result<Option<String>> {
+    allowed: &[&str],
+) -> Result<BTreeMap<String, String>, Box<Problem>> {
+    let mut out = BTreeMap::new();
     for v in list {
-        if v.get_path()?.to_str()? == path {
-            return Ok(Some(v.get_text()?.to_string()?));
+        let path = v
+            .get_path()
+            .and_then(|p| p.to_string().map_err(capnp::Error::from))
+            .map_err(bad_wire)?;
+        let text = v
+            .get_text()
+            .and_then(|t| t.to_string().map_err(capnp::Error::from))
+            .map_err(bad_wire)?;
+        if !allowed.contains(&path.as_str()) {
+            let why = format!("no argument {path:?} (allowed: {})", allowed.join(", "));
+            return Err(boxed(UNKNOWN_ARG, why, 400));
+        }
+        if out.insert(path.clone(), text).is_some() {
+            return Err(boxed(
+                DUPLICATE_ARG,
+                format!("argument {path:?} twice"),
+                400,
+            ));
         }
     }
-    Ok(None)
+    Ok(out)
 }
 
 fn set_value(mut out: value::Builder<'_>, path: &str, text: &str) {
@@ -58,10 +83,20 @@ fn set_value(mut out: value::Builder<'_>, path: &str, text: &str) {
     out.set_text(text);
 }
 
-fn board_named<'a>(boards: &'a [BoardEntry], scope: &str) -> Option<&'a BoardEntry> {
-    boards
-        .iter()
-        .find(|b| b.board.name == scope || b.id.to_string() == scope)
+/// The board for `scope`: the id wins; a name that more than one board has is refused (the caller uses the id).
+fn board_named<'a>(boards: &'a [BoardEntry], scope: &str) -> Result<&'a BoardEntry, Box<Problem>> {
+    if let Some(b) = boards.iter().find(|b| b.id.to_string() == scope) {
+        return Ok(b);
+    }
+    let mut named = boards.iter().filter(|b| b.board.name == scope);
+    match (named.next(), named.next()) {
+        (Some(b), None) => Ok(b),
+        (Some(_), Some(_)) => {
+            let why = format!("more than one board is named {scope:?}, use its id");
+            Err(boxed(UNKNOWN_SCOPE, why, 409))
+        }
+        _ => Err(boxed(UNKNOWN_SCOPE, format!("no board {scope:?}"), 404)),
+    }
 }
 
 impl FormSourceImpl {
@@ -71,9 +106,7 @@ impl FormSourceImpl {
         let chosen: Vec<&BoardEntry> = if scope.is_empty() {
             boards.iter().collect()
         } else {
-            vec![board_named(&boards, scope).ok_or_else(|| {
-                problem(UNKNOWN_SCOPE, format!("no board {scope:?}"), 404).into_error()
-            })?]
+            vec![board_named(&boards, scope).map_err(|p| p.into_error())?]
         };
         let mut out = Vec::new();
         for entry in chosen {
@@ -147,6 +180,7 @@ impl form_source::Server for FormSourceImpl {
             for (i, row) in (0u32..).zip(&rows) {
                 let mut view: record_view::Builder<'_> = list.reborrow().get(i);
                 view.set_id(row[0].1.as_str());
+                // what the commands of this module allow in general; the rights of the person are checked by the core at `invoke`
                 view.reborrow().init_may(1).set(0, "planning.move");
                 let mut values = view.init_values(count(row.len() - 1)?);
                 for (j, (path, text)) in (0u32..).zip(&row[1..]) {
@@ -199,11 +233,15 @@ impl FormSourceImpl {
         uid: String,
         args: capnp::struct_list::Reader<'_, value::Owned>,
     ) -> Result<(), Box<Problem>> {
-        let text = |path: &str| arg(args, path).map_err(|e| boxed(BAD_ARGS, e.to_string(), 400));
-        let (Some(board), Some(column)) = (text("board")?, text("column")?) else {
+        let mut got = text_args(args, &["board", "column", "index"])?;
+        if uid.is_empty() || uid.len() > UID_MAX {
+            let why = format!("`record` must be a uid of 1 to {UID_MAX} bytes");
+            return Err(boxed(BAD_ARGS, why, 400));
+        }
+        let (Some(board), Some(column)) = (got.remove("board"), got.remove("column")) else {
             return Err(boxed(BAD_ARGS, "move needs `board` and `column`", 400));
         };
-        let index = match text("index")? {
+        let index = match got.remove("index") {
             None => None,
             Some(t) => Some(
                 t.parse::<usize>()
@@ -211,12 +249,20 @@ impl FormSourceImpl {
             ),
         };
         let boards = self.repo.boards().await.map_err(to_problem)?;
-        let entry = board_named(&boards, &board)
-            .ok_or_else(|| boxed(UNKNOWN_SCOPE, format!("no board {board:?}"), 404))?;
+        let entry = board_named(&boards, &board)?;
+        if self
+            .repo
+            .get_by_uid(&uid)
+            .await
+            .map_err(to_problem)?
+            .is_none()
+        {
+            return Err(boxed(BAD_ARGS, format!("no task {uid:?}"), 404));
+        }
         let (id, repo) = (entry.id, self.repo.clone());
         run_to_end(async move { repo.board_move_card(id, &uid, &column, index).await })
             .await
-            .map_err(|e| boxed(BAD_ARGS, e.to_string(), 500))?
+            .map_err(|e| boxed(INTERNAL, e.to_string(), 500))?
             .map(|_| ())
             .map_err(to_problem)
     }
@@ -225,7 +271,7 @@ impl FormSourceImpl {
 #[allow(clippy::unnecessary_box_returns)] // the error type of `move_card` is boxed (a `Problem` is large)
 fn to_problem(e: fs_tasks_core::Error) -> Box<Problem> {
     let text = e.to_string();
-    Box::new(Problem::from_error(&rpc_error(e)).unwrap_or_else(|| problem(BAD_ARGS, text, 500)))
+    Box::new(Problem::from_error(&rpc_error(e)).unwrap_or_else(|| problem(INTERNAL, text, 500)))
 }
 
 fn read_offset(c: cursor::Reader<'_>) -> capnp::Result<usize> {
@@ -237,6 +283,10 @@ fn read_offset(c: cursor::Reader<'_>) -> capnp::Result<usize> {
         .ok()
         .and_then(|t| t.parse().ok())
         .ok_or_else(|| problem(BAD_ARGS, "the cursor is not one of this service", 400).into_error())
+}
+
+fn bad_wire(e: capnp::Error) -> Box<Problem> {
+    boxed(BAD_ARGS, e.to_string(), 400)
 }
 
 fn boxed(kind: &str, detail: impl Into<String>, status: u16) -> Box<Problem> {
