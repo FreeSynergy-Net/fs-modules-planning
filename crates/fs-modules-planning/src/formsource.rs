@@ -58,11 +58,11 @@ fn text_args(
         let path = v
             .get_path()
             .and_then(|p| p.to_string().map_err(capnp::Error::from))
-            .map_err(bad_wire)?;
+            .map_err(|e| bad_wire(&e))?;
         let text = v
             .get_text()
             .and_then(|t| t.to_string().map_err(capnp::Error::from))
-            .map_err(bad_wire)?;
+            .map_err(|e| bad_wire(&e))?;
         if !allowed.contains(&path.as_str()) {
             let why = format!("no argument {path:?} (allowed: {})", allowed.join(", "));
             return Err(boxed(UNKNOWN_ARG, why, 400));
@@ -285,7 +285,8 @@ fn read_offset(c: cursor::Reader<'_>) -> capnp::Result<usize> {
         .ok_or_else(|| problem(BAD_ARGS, "the cursor is not one of this service", 400).into_error())
 }
 
-fn bad_wire(e: capnp::Error) -> Box<Problem> {
+#[allow(clippy::unnecessary_box_returns)] // the error type of the argument readers is boxed (a `Problem` is large)
+fn bad_wire(e: &capnp::Error) -> Box<Problem> {
     boxed(BAD_ARGS, e.to_string(), 400)
 }
 

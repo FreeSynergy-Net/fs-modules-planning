@@ -56,7 +56,7 @@ fn the_file_keeps_the_duties_of_the_host() {
                 .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-' || b == b'_')
     };
     let commands = doc["commands"].as_array().unwrap();
-    assert!(!commands.is_empty());
+    assert_eq!(commands.len(), 1, "planning.move only");
     let space = format!("{module}.");
     for c in commands {
         let id = c["id"].as_str().unwrap();
