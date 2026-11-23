@@ -139,3 +139,17 @@ async fn a_failed_placing_of_a_new_task_takes_the_task_back() {
         uid
     );
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn the_cards_already_placed_in_the_target_column_stay_placed_when_the_index_is_above_them() {
+    let f = fixture(&["a", "b", "c", "d"]).await;
+    // a to the end: todo is b, c, a (all three pinned in that order)
+    place(&f.repo, f.board, &f.uids[0], "todo", None)
+        .await
+        .unwrap();
+    // d to the top: the placed cards b, c, a keep their places behind it (not back to the order of their creation)
+    place(&f.repo, f.board, &f.uids[3], "todo", Some(0))
+        .await
+        .unwrap();
+    assert_eq!(shown(&f).await, ["todo/d", "todo/b", "todo/c", "todo/a"]);
+}
