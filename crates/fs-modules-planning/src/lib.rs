@@ -15,6 +15,7 @@
 #![allow(clippy::missing_errors_doc, clippy::unused_async_trait_impl)]
 
 mod boards;
+mod both;
 mod errors;
 mod formsource;
 mod items;

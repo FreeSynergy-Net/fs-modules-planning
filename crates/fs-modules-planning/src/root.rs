@@ -13,7 +13,8 @@ use fs_rpc::{Caller, CallerError, PerConnection};
 use fs_tasks_core::TaskRepo;
 
 use crate::boards::BoardsImpl;
-use crate::formsource::{FormSourceImpl, both};
+use crate::both::both;
+use crate::formsource::FormSourceImpl;
 use crate::items::ItemsImpl;
 
 /// The contract version this service speaks.

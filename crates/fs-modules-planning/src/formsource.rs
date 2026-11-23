@@ -1,17 +1,12 @@
 //! `FormSource` of the planning module: the read side for drawing by a form (`cards-in-columns@1.0`) and the writing of one command
 //! (`move`), next to the contract `tasks.capnp` on the same socket.
 //!
-//! Pattern: Adapter (the board layout and the tasks of the core, as records by the field names of `catalog/forms.json`) + Decorator
-//! (`Both`: one capability that answers `FormSource` itself and hands every other call, unchanged, to `Tasks`, as `Control` does
-//! in fs-rpc). Everything the person may do is checked by the core as the caller of the connection; `invoke` only knows the commands
+//! Pattern: Adapter (the board layout and the tasks of the core, as records by the field names of `catalog/forms.json`). The one capability that is `Tasks` and `FormSource` is in `both.rs`. Everything the person may do is checked by the core as the caller of the connection; `invoke` only knows the commands
 //! of `catalog/commands.json`, and the values of a command are text (the wire of `FormSource` has no other kind).
 
 use std::rc::Rc;
 use std::sync::Arc;
 
-use capnp::any_pointer;
-use capnp::capability::{Client, DispatchCallResult, FromServer, Params, Promise, Results, Server};
-use capnp::traits::HasTypeId;
 use fs_interfaces::common_capnp::cursor;
 use fs_interfaces::forms::FORM_SOURCE_LEVEL;
 use fs_interfaces::formsource_capnp::{form_source, record_view, value};
@@ -241,66 +236,6 @@ fn read_offset(c: cursor::Reader<'_>) -> capnp::Result<usize> {
         .ok()
         .and_then(|t| t.parse().ok())
         .ok_or_else(|| problem(BAD_ARGS, "the cursor is not one of this service", 400).into_error())
-}
-
-// ---- both interfaces on one capability
-
-struct Both {
-    tasks: Client,
-    form: Client,
-}
-
-#[derive(Clone)]
-struct Dispatch(Rc<Both>);
-
-impl FromServer<Both> for Client {
-    type Dispatch = Dispatch;
-    fn from_server(s: Rc<Both>) -> Dispatch {
-        Dispatch(s)
-    }
-}
-
-impl std::ops::Deref for Dispatch {
-    type Target = Both;
-    fn deref(&self) -> &Both {
-        &self.0
-    }
-}
-
-impl Server for Dispatch {
-    fn dispatch_call(
-        self,
-        interface_id: u64,
-        method_id: u16,
-        params: Params<any_pointer::Owned>,
-        mut results: Results<any_pointer::Owned>,
-    ) -> DispatchCallResult {
-        let to = if interface_id == <form_source::Client as HasTypeId>::TYPE_ID {
-            &self.0.form
-        } else {
-            &self.0.tasks
-        };
-        let mut request =
-            to.new_call::<any_pointer::Owned, any_pointer::Owned>(interface_id, method_id, None);
-        DispatchCallResult::new(
-            Promise::from_future(async move {
-                request.get().set_as(params.get()?)?;
-                let response = request.send().promise.await?;
-                results.get().set_as(response.get()?)?;
-                Ok(())
-            }),
-            false,
-        )
-    }
-
-    fn as_ptr(&self) -> usize {
-        Rc::as_ptr(&self.0) as usize
-    }
-}
-
-/// One capability that is `Tasks` and `FormSource`.
-pub(crate) fn both(tasks: Client, form: Client) -> Client {
-    capnp_rpc::new_client::<Client, _>(Both { tasks, form })
 }
 
 fn boxed(kind: &str, detail: impl Into<String>, status: u16) -> Box<Problem> {
