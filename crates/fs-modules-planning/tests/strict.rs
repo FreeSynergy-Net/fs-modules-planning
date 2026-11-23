@@ -14,10 +14,51 @@ use tokio::task::LocalSet;
 fn the_form_names_at_most_four_facts_and_the_capabilities_are_the_contract_ids() {
     let forms: serde_json::Value =
         serde_json::from_str(include_str!("../../../catalog/forms.json")).unwrap();
-    // cards-in-columns@1.0 allows facts 0..4 (fs-interfaces schema/forms.txt)
+    // cards-in-columns@1.1 allows facts 0..4 (fs-interfaces schema/forms.txt)
     assert!(forms[0]["map"]["facts"].as_array().unwrap().len() <= 4);
-    // the channel of the form names the key of the contract, not a name of the host
+    // the version the module keeps decides what a command writes (fs-forms-run `definition`): 1.1 has `writes`, `order`, create, remove
+    assert_eq!(forms[0]["version"], "1.1");
+    assert_eq!(forms[0]["version"], FORM_CARDS.rsplit('@').next().unwrap());
+    // the channel of the form names the key of the contract, not a name of the host; the place is written as `index`
     assert_eq!(forms[0]["map"]["move"], "card.move");
+    assert_eq!(forms[0]["map"]["create"], "task.create");
+    assert_eq!(forms[0]["map"]["remove"], "task.delete");
+    assert_eq!(forms[0]["map"]["order"], "index");
+    assert_eq!(forms[0]["map"]["lane"], "board");
+    // `progress` is a number channel in 1.1, the module sends text: it is not bound
+    assert!(forms[0]["map"].get("progress").is_none());
+    // every command channel is a key of the command file, and every argument the gesture writes (`order`, `lane`, `column`, `title`)
+    // is a param of that command
+    let file: serde_json::Value =
+        serde_json::from_str(include_str!("../../../catalog/commands.json")).unwrap();
+    let params_of = |key: &str| -> Vec<String> {
+        let c = file["commands"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|c| c["capability"] == key)
+            .unwrap_or_else(|| panic!("{key} is not in commands.json"));
+        c["params"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|p| p["path"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    for (channel, writes) in [
+        ("move", &["column", "order", "lane"][..]),
+        ("create", &["title", "column", "lane"][..]),
+        ("remove", &[][..]),
+    ] {
+        let params = params_of(forms[0]["map"][channel].as_str().unwrap());
+        for w in writes {
+            let field = forms[0]["map"][*w].as_str().unwrap();
+            assert!(
+                params.iter().any(|p| p == field),
+                "{channel}: {w} -> {field} is no param"
+            );
+        }
+    }
     for id in fs_modules_planning::CAPABILITIES {
         assert!(!id.starts_with("planning."), "{id}");
     }

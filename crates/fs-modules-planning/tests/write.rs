@@ -59,7 +59,7 @@ async fn a_task_is_created_in_a_full_column_at_its_index_and_deleted() {
                 ]
             );
             // the answer names the new card: it is the record the page shows
-            let rows = common::page(&source, "cards-in-columns@1.0", "work")
+            let rows = common::page(&source, "cards-in-columns@1.1", "work")
                 .await
                 .unwrap();
             assert_eq!(rows[0].0, first.record);

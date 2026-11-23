@@ -20,6 +20,9 @@ mod errors;
 mod facts;
 mod formsource;
 mod items;
+mod place;
+#[cfg(test)]
+mod place_tests;
 mod root;
 mod serve;
 mod wire;
@@ -27,6 +30,6 @@ mod write;
 #[cfg(test)]
 mod write_tests;
 
-pub use formsource::{FORM_CARDS, PROVIDER};
+pub use formsource::{FORM_CARDS, FORM_CARDS_1_0, PROVIDER};
 pub use root::{CAPABILITIES, CONTRACT_VERSION, Planning, actor_of};
 pub use serve::{PROGRAM, serve_command};

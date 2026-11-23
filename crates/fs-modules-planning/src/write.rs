@@ -4,18 +4,21 @@
 //! Pattern: Command (one method per command over the core) + Adapter (core errors as problems of the form source). The wire name of a
 //! command is the key of `fs-interfaces schema/capabilities.txt`, never a name with the prefix of the module (the host adds that). Every
 //! value of a command is text; an argument that is not named in `catalog/commands.json` or that comes twice is refused with its reason.
-//! The core of this module has no rights of its own (the socket admits the person of the data folder, the actor is that person): `may` is
-//! what the provider reports as supported (`TaskItems::capabilities`), nothing more is claimed.
+//! Rights, honestly: the core has no rights per person. Only the owner is admitted at the socket (fs-rpc: Unix mode 0600, Windows
+//! `only_me` and no remote clients), and he may do all with his data; `invoke` gives no right that `Tasks` on the same socket does not
+//! give already (`Items.create`/`delete`, `Boards.moveCard`). So `may` ("this person may" in the contract) is what the provider reports
+//! as supported (`TaskItems::capabilities`), nothing more is claimed; rights per person (groups, several users) come later. A command
+//! the provider cannot do is `form-source-forbidden` (403): `formsource.capnp` names no kinds for `invoke`, and the host (SW-5) tells them apart only later, so no new kind `unsupported` (501) is started here.
 
 use std::collections::BTreeMap;
 
 use fs_interfaces::Capabilities;
 use fs_interfaces::formsource_capnp::value;
-use fs_objects::ObjectId;
 use fs_rpc::{Problem, run_to_end};
-use fs_tasks_core::{BoardEntry, Boards, Error, Task, TaskEntry, TaskItems, TaskRepo};
+use fs_tasks_core::{BoardEntry, Boards, Error, TaskEntry, TaskItems, TaskRepo};
 
 use crate::errors::rpc_error;
+use crate::place::{create_placed, place};
 
 pub(crate) const UNKNOWN_SCOPE: &str = "form-source-unknown-scope";
 pub(crate) const UNKNOWN_COMMAND: &str = "form-source-unknown-command";
@@ -164,33 +167,6 @@ async fn task_of(repo: &TaskRepo, uid: &str) -> Result<TaskEntry, Failure> {
         .ok_or_else(|| boxed(UNKNOWN_RECORD, format!("no task {uid:?}"), 404))
 }
 
-/// Put the card `uid` into `column` at `index` COUNTED AMONG THE CARDS AS THE LAYOUT SHOWS THEM. The core counts only the cards placed by
-/// hand (the others stand after them), so a plain `board_move_card` would put "second place" before cards the person sees above it.
-/// So the order of every column is first written as shown (nothing moves on the screen), then the card is placed; a board changed by
-/// someone else in between is a conflict (checked edit), never a lost write.
-async fn place(
-    repo: &TaskRepo,
-    id: ObjectId,
-    uid: &str,
-    column: &str,
-    index: Option<usize>,
-) -> fs_tasks_core::Result<()> {
-    let entry = repo.board_get(id).await?.ok_or(Error::NotFound(id))?;
-    let layout = repo.board_layout(id).await?;
-    let mut board = entry.board.clone();
-    board.order = layout
-        .columns
-        .into_iter()
-        .filter(|c| !c.cards.is_empty())
-        .map(|c| (c.column.id, c.cards))
-        .collect();
-    board
-        .move_card(uid, column, index)
-        .map_err(Error::Rejected)?;
-    repo.board_edit(id, entry.revision(), board).await?;
-    Ok(())
-}
-
 /// `card.move`: the card `uid` into `column` of the board `board` at `index` (text of a number; none = the end).
 pub(crate) async fn move_card(
     repo: &TaskRepo,
@@ -216,8 +192,8 @@ pub(crate) async fn move_card(
 }
 
 /// `task.create`: a task with `title`, put into `column` of `board` at `index` (none = the end). Board and column are checked before
-/// anything is written, so a refused command leaves nothing behind; only a board that vanishes between the check and the placing
-/// (a race) leaves the new task standing in the column its progress names.
+/// anything is written; if the placing still fails (a conflict, a column or board that vanished in between), the new task is deleted
+/// again (`create_placed`). A refused command leaves nothing behind, so a retry never makes the task twice.
 pub(crate) async fn create_task(
     repo: &TaskRepo,
     record: &str,
@@ -243,14 +219,10 @@ pub(crate) async fn create_task(
         return Err(to_problem(Error::Rejected(format!("no column {column:?}"))));
     }
     let (id, repo) = (entry.id, repo.clone());
-    let uid = run_to_end(async move {
-        let uid = repo.create(Task::new(title)).await?.task.uid;
-        place(&repo, id, &uid, &column, index).await?;
-        Ok(uid)
-    })
-    .await
-    .map_err(|e| boxed(INTERNAL, e.to_string(), 500))?
-    .map_err(to_problem)?;
+    let uid = run_to_end(async move { create_placed(&repo, id, title, &column, index).await })
+        .await
+        .map_err(|e| boxed(INTERNAL, e.to_string(), 500))?
+        .map_err(to_problem)?;
     Ok(Done {
         record: uid,
         text: "task-created",

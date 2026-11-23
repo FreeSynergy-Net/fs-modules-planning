@@ -7,7 +7,7 @@ mod common;
 use common::{call, field, invoke, page, serve};
 use fs_interfaces::formsource_capnp::form_source;
 use fs_interfaces::tasks_capnp::tasks;
-use fs_modules_planning::{FORM_CARDS, PROVIDER};
+use fs_modules_planning::{FORM_CARDS, FORM_CARDS_1_0, PROVIDER};
 use fs_tasks_core::Task;
 use tokio::task::LocalSet;
 
@@ -42,14 +42,28 @@ async fn a_card_is_moved_through_invoke_with_text_values_only() {
             assert_eq!(rows.len(), 1);
             assert_eq!(field(&rows[0], "title"), "Write the test");
             assert_eq!(field(&rows[0], "column"), "todo");
+            // the older minor (a subset of the form) is still read, with the same cards
+            let old = page(&source.client, FORM_CARDS_1_0, "work").await.unwrap();
+            assert_eq!(old, rows);
+            let e = page(&source.client, "cards-in-columns@1.2", "work")
+                .await
+                .unwrap_err();
+            assert!(e.to_string().contains("form-source-unknown-form"), "{e}");
             let uid = rows[0].0.clone();
 
             // every field the catalog names is one the service writes (`due` only for a task that has one)
             let forms: serde_json::Value =
                 serde_json::from_str(include_str!("../../../catalog/forms.json")).unwrap();
             for name in forms[0]["fields"].as_object().unwrap().keys().filter(|n| {
-                !["due", "priority", "participants", "keywords", "description"]
-                    .contains(&n.as_str())
+                ![
+                    "due",
+                    "priority",
+                    "participants",
+                    "keywords",
+                    "description",
+                    "index",
+                ]
+                .contains(&n.as_str())
             }) {
                 assert!(rows[0].2.iter().any(|(p, _)| p == name), "{name}");
             }

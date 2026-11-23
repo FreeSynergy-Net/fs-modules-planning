@@ -1,4 +1,4 @@
-//! `FormSource` of the planning module: the read side for drawing by a form (`cards-in-columns@1.0`) and the writing of the commands
+//! `FormSource` of the planning module: the read side for drawing by a form (`cards-in-columns@1.1`) and the writing of the commands
 //! of `catalog/commands.json` (`card.move`, `task.create`, `task.delete`, see `write.rs`), next to the contract `tasks.capnp` on the
 //! same socket.
 //!
@@ -23,8 +23,12 @@ use crate::write::{
 /// Who the service says it is in `hello`.
 pub const PROVIDER: &str = "planning";
 
-/// The one form this module draws today, as `name@Major.Minor` (a key of `schema/forms.txt`).
-pub const FORM_CARDS: &str = "cards-in-columns@1.0";
+/// The form this module draws and writes, as `name@Major.Minor` (a key of `schema/forms.txt`): `cards-in-columns@1.1` has the channels
+/// `order`, `create` and `remove` and the `writes` of `move`; `catalog/forms.json` declares this version.
+pub const FORM_CARDS: &str = "cards-in-columns@1.1";
+
+/// The older minor of the same form (a subset: the same cards, no place and no create): still read, so a host that asks for `1.0` is served.
+pub const FORM_CARDS_1_0: &str = "cards-in-columns@1.0";
 
 /// The most records of one page when the caller names no limit (or a bigger one).
 pub const PAGE_MAX: u32 = 500;
@@ -38,8 +42,9 @@ pub(crate) struct FormSourceImpl {
 type Reply = Result<(), capnp::Error>;
 
 impl FormSourceImpl {
-    /// One record per card of the boards in `scope` (empty = every board), in the order of the layout: column by column.
-    async fn records(&self, scope: &str) -> capnp::Result<Vec<Vec<(&'static str, String)>>> {
+    /// The cards of the boards in `scope` (empty = every board), in the order of the layout: column by column, as `(board name,
+    /// column id, uid)`. Only the layout is read here; the tasks of one page are read by [`Self::row`].
+    async fn cards(&self, scope: &str) -> capnp::Result<Vec<(String, String, String)>> {
         let boards = self.repo.boards().await.map_err(rpc_error)?;
         let chosen: Vec<&BoardEntry> = if scope.is_empty() {
             boards.iter().collect()
@@ -49,30 +54,42 @@ impl FormSourceImpl {
         let mut out = Vec::new();
         for entry in chosen {
             let layout = self.repo.board_layout(entry.id).await.map_err(rpc_error)?;
-            for column in &layout.columns {
-                for uid in &column.cards {
-                    let Some(task) = self.repo.get_by_uid(uid).await.map_err(rpc_error)? else {
-                        continue;
-                    };
-                    let task = &task.task;
-                    let mut row = vec![
-                        ("uid", uid.clone()),
-                        ("board", entry.board.name.clone()),
-                        ("column", column.column.id.clone()),
-                        ("title", task.title.clone().unwrap_or_default()),
-                    ];
-                    if let Some(due) = &task.due {
-                        row.push(("due", due.clone()));
-                    }
-                    if let Some(progress) = &task.progress {
-                        row.push(("progress", progress.clone()));
-                    }
-                    row.extend(crate::facts::of(task));
-                    out.push(row);
-                }
+            for column in layout.columns {
+                let (board, id) = (&entry.board.name, &column.column.id);
+                out.extend(
+                    column
+                        .cards
+                        .into_iter()
+                        .map(|u| (board.clone(), id.clone(), u)),
+                );
             }
         }
         Ok(out)
+    }
+
+    /// The record of one card by the field names of `catalog/forms.json`; `None` when the task is gone in the meantime.
+    async fn row(
+        &self,
+        (board, column, uid): &(String, String, String),
+    ) -> capnp::Result<Option<Vec<(&'static str, String)>>> {
+        let Some(task) = self.repo.get_by_uid(uid).await.map_err(rpc_error)? else {
+            return Ok(None);
+        };
+        let task = &task.task;
+        let mut row = vec![
+            ("uid", uid.clone()),
+            ("board", board.clone()),
+            ("column", column.clone()),
+            ("title", task.title.clone().unwrap_or_default()),
+        ];
+        if let Some(due) = &task.due {
+            row.push(("due", due.clone()));
+        }
+        if let Some(progress) = &task.progress {
+            row.push(("progress", progress.clone()));
+        }
+        row.extend(crate::facts::of(task));
+        Ok(Some(row))
     }
 }
 
@@ -94,10 +111,11 @@ impl form_source::Server for FormSourceImpl {
         mut results: form_source::PageResults,
     ) -> Reply {
         let p = params.get()?;
-        if p.get_form()?.to_str()? != FORM_CARDS {
-            return Err(
-                problem(UNKNOWN_FORM, "this module draws cards-in-columns@1.0", 404).into_error(),
-            );
+        let form = p.get_form()?.to_str()?;
+        if form != FORM_CARDS && form != FORM_CARDS_1_0 {
+            let why =
+                format!("this module draws {FORM_CARDS} (and {FORM_CARDS_1_0} as its subset)");
+            return Err(problem(UNKNOWN_FORM, why, 404).into_error());
         }
         let scope = p.get_scope()?.to_string()?;
         let skip = read_offset(p.get_cursor()?)?;
@@ -105,10 +123,13 @@ impl form_source::Server for FormSourceImpl {
             0 => PAGE_MAX,
             n => n.min(PAGE_MAX),
         } as usize;
-        let rows = self.records(&scope).await?;
-        let total = rows.len();
-        let rows: Vec<_> = rows.into_iter().skip(skip).take(limit).collect();
-        let end = skip + rows.len();
+        let cards = self.cards(&scope).await?;
+        let total = cards.len();
+        let mut rows = Vec::new();
+        for card in cards.iter().skip(skip).take(limit) {
+            rows.extend(self.row(card).await?);
+        }
+        let end = (skip + limit).min(total);
         // what the provider supports, for a record and for the set (a new card); the same table `invoke` is held to
         let caps = self.repo.capabilities();
         let (on_record, on_set) = (may(&caps, &RECORD_COMMANDS), may(&caps, &SET_COMMANDS));

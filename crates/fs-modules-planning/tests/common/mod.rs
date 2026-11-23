@@ -141,13 +141,13 @@ pub async fn board_with(
             .set_jscalendar(Task::new(*title).to_value().to_string().as_str());
         add.send().promise.await.unwrap();
     }
-    let rows = page(source, "cards-in-columns@1.0", "work").await.unwrap();
+    let rows = page(source, "cards-in-columns@1.1", "work").await.unwrap();
     rows.into_iter().map(|r| r.0).collect()
 }
 
 /// The titles of the page of `work`, column by column (the order of the layout), as `column/title`.
 pub async fn titles(source: &form_source::Client) -> Vec<String> {
-    let rows = page(source, "cards-in-columns@1.0", "work").await.unwrap();
+    let rows = page(source, "cards-in-columns@1.1", "work").await.unwrap();
     rows.iter()
         .map(|r| format!("{}/{}", field(r, "column"), field(r, "title")))
         .collect()

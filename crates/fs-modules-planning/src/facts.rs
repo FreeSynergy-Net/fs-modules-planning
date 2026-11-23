@@ -1,4 +1,4 @@
-//! The optional facts of a card, as the text values of the form `cards-in-columns@1.0`: `priority`, `participants`, `keywords`,
+//! The optional facts of a card, as the text values of the form `cards-in-columns@1.1`: `priority`, `participants`, `keywords`,
 //! `description`. They come from the JSCalendar task the contract carries (RFC 8984), a fact the task does not have is not sent.
 //!
 //! Pattern: Adapter (typed task member to the text of a form field; nothing is invented, `note` has no member in the contract). `description` goes out as it is, whatever its `descriptionContentType` (text/html stays raw).
