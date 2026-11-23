@@ -2,6 +2,22 @@
 
 Version = tag.
 
+## Unreleased
+
+English
+
+- The module is named `planning`: socket `planning.sock` (the old name `modules-planning.sock` is gone, no alias), one constant `SOCKET_PROGRAM` in the client, used by the service; data folder `modules/planning`.
+- `FormSource` (level 1) next to `tasks.capnp` on the same socket: `hello`, `page` for `cards-in-columns@1.0`, `invoke` for `move` with text values; `catalog/forms.json`; `catalog/commands.json` version `0.0.1` with `claim`, `release`, `note` (listed, not served yet).
+- Heartbeat of fs-rpc started with the service (Unix).
+- Pins: fs-rpc v0.0.7, fs-interfaces v0.0.31.
+
+Auf Deutsch
+
+- Das Modul heisst `planning`: Socket `planning.sock` (der alte Name `modules-planning.sock` entfaellt ersatzlos), eine Konstante `SOCKET_PROGRAM` im Client, vom Dienst benutzt; Datenordner `modules/planning`.
+- `FormSource` (Stufe 1) neben `tasks.capnp` auf demselben Socket: `hello`, `page` fuer `cards-in-columns@1.0`, `invoke` fuer `move` mit Textwerten; `catalog/forms.json`; `catalog/commands.json` Version `0.0.1` mit `claim`, `release`, `note` (gelistet, noch nicht bedient).
+- Herzschlag von fs-rpc mit dem Dienst gestartet (Unix).
+- Pins: fs-rpc v0.0.7, fs-interfaces v0.0.31.
+
 ## 0.0.3 - 2026-11-21
 
 English

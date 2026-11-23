@@ -1,10 +1,14 @@
 {
   "module": "planning",
+  "version": "0.0.1",
   "contract": "tasks",
   "commands": [
     { "id": "create", "call": "Items.create", "capability": "task.create" },
     { "id": "move", "call": "Boards.moveCard", "capability": "card.move" },
     { "id": "column.create", "call": "Boards.editColumns", "capability": "column.create" },
-    { "id": "delete", "call": "Items.delete", "capability": "task.delete" }
+    { "id": "delete", "call": "Items.delete", "capability": "task.delete" },
+    { "id": "claim", "call": "FormSource.invoke", "capability": "task.claim" },
+    { "id": "release", "call": "FormSource.invoke", "capability": "task.release" },
+    { "id": "note", "call": "FormSource.invoke", "capability": "task.note" }
   ]
 }

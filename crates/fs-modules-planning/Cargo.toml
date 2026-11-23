@@ -18,9 +18,11 @@ path = "src/main.rs"
 [dependencies]
 # The core is used without its `contract` feature: the service needs none of its filter conversion.
 fs-tasks-core = { path = "../fs-tasks-core" }
+# The one place of the module name (socket, catalog, data folder): the client says it, the service uses it.
+fs-modules-planning-client = { path = "../fs-modules-planning-client" }
 # One source per library: the same tags as the core and fs-rpc.
-fs-rpc = { git = "https://github.com/FreeSynergy/fs-rpc", tag = "v0.0.6" }
-fs-interfaces = { git = "https://github.com/FreeSynergy/fs-interfaces", tag = "v0.0.30" }
+fs-rpc = { git = "https://github.com/FreeSynergy/fs-rpc", tag = "v0.0.7" }
+fs-interfaces = { git = "https://github.com/FreeSynergy/fs-interfaces", tag = "v0.0.31" }
 fs-objects = { git = "https://github.com/FreeSynergy/fs-objects", tag = "v0.0.8" }
 capnp = "0.27"
 capnp-rpc = "0.27"

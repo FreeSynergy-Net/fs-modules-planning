@@ -16,10 +16,12 @@
 
 mod boards;
 mod errors;
+mod formsource;
 mod items;
 mod root;
 mod serve;
 mod wire;
 
+pub use formsource::{FORM_CARDS, PROVIDER};
 pub use root::{CAPABILITIES, CONTRACT_VERSION, Planning, actor_of};
 pub use serve::{PROGRAM, serve_command};

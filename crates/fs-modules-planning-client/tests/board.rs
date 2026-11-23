@@ -42,7 +42,7 @@ async fn the_service_reports_what_the_host_may_unlock() {
             }
             assert!(
                 !planning.can_command("claim"),
-                "a command the catalog does not have"
+                "the catalog has it, the service does not report its capability yet"
             );
         })
         .await;

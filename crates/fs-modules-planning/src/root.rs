@@ -13,6 +13,7 @@ use fs_rpc::{Caller, CallerError, PerConnection};
 use fs_tasks_core::TaskRepo;
 
 use crate::boards::BoardsImpl;
+use crate::formsource::{FormSourceImpl, both};
 use crate::items::ItemsImpl;
 
 /// The contract version this service speaks.
@@ -87,6 +88,8 @@ impl tasks::Server for Root {
 pub struct Planning {
     repo: Arc<TaskRepo>,
     refused: Rc<dyn Fn(&CallerError)>,
+    /// What lives as long as the service (the heartbeat); dropped with it.
+    keep: Vec<Box<dyn std::any::Any>>,
 }
 
 impl Planning {
@@ -95,14 +98,28 @@ impl Planning {
         Self {
             repo,
             refused: Rc::new(refused),
+            keep: Vec::new(),
         }
+    }
+
+    /// Keep `thing` alive as long as the service serves.
+    #[must_use]
+    pub fn keeping(mut self, thing: impl std::any::Any) -> Self {
+        self.keep.push(Box::new(thing));
+        self
     }
 }
 
 impl PerConnection for Planning {
     fn bootstrap(&mut self, caller: &Caller) -> capnp::capability::Client {
         let repo = Arc::new(self.repo.as_actor(actor_of(caller)));
-        new_client::<tasks::Client, _>(Root { repo }).client
+        let form =
+            new_client::<fs_interfaces::formsource_capnp::form_source::Client, _>(FormSourceImpl {
+                repo: repo.clone(),
+            })
+            .client;
+        let tasks = new_client::<tasks::Client, _>(Root { repo }).client;
+        both(tasks, form)
     }
 
     fn refused(&mut self, why: &CallerError) {

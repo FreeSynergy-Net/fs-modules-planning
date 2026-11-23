@@ -88,6 +88,10 @@ async fn it_serves_keeps_its_data_below_xdg_and_runs_once() {
                 ids.iter().any(|i| i == "board.open") && ids.iter().any(|i| i == "card.move"),
                 "{ids:?}"
             );
+            // the heartbeat of the service answers next to the socket (a duty of every module service)
+            fs_rpc::ask_beat(&socket, Duration::from_secs(2))
+                .await
+                .expect("the heartbeat answers");
         })
         .await;
     let data = home.path().join("data/freesynergy/modules/planning");

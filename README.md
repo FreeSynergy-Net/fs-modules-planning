@@ -12,6 +12,10 @@ Today this repository is ONE tasks provider plus ONE test kit, moved unchanged f
 
 Readiness, rank, checklist, progress and claim exist as code only INSIDE the provider, bound to `tasks_v1`; none of them is a module of its own yet. Schedule and critical path do not exist at all, and the progress presets `rfc8984` and `freesynergy` are missing. The long rank test is `#[ignore]` and runs by hand only (`cargo test -p fs-tasks-local -- --ignored`), not in CI.
 
+## Form source (tasks)
+
+The service `fs-modules-planning` is the module `planning`: socket `planning.sock`, data in `modules/planning`, the one constant `fs_modules_planning_client::SOCKET_PROGRAM`. Next to `tasks.capnp` it serves `FormSource` (level 1) on the same socket: form `cards-in-columns@1.0` (`catalog/forms.json`), the write command `move` through `invoke` with text values (`board`, `column`, `index`); `claim`, `release` and `note` are in `catalog/commands.json` but not served yet. It runs the heartbeat of fs-rpc (Unix). `catalog/commands.json` has the version `0.0.1`. In 0.0.x every step may break. In 0.0.x darf jeder Schritt brechen.
+
 ## Modules that will come (targets, not present)
 
 Decision (strategy 6e, F2): the renaming to `fs-todo` stays a later step. A bundle `fs-planning` is made only when at least two programs use the parts (ADR 0101 E2); until then the parts below are single modules.

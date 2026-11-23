@@ -16,13 +16,15 @@ use fs_tasks_core::TaskRepo;
 
 use crate::root::Planning;
 
-/// The name of the program for the socket (`$XDG_RUNTIME_DIR/freesynergy/modules-planning.sock`) and `Control.version`.
-pub const PROGRAM: &str = "modules-planning";
+/// The name of the module for the socket (`$XDG_RUNTIME_DIR/freesynergy/planning.sock`) and `Control.version`: the one constant of the client.
+pub const PROGRAM: &str = fs_modules_planning_client::SOCKET_PROGRAM;
 
-/// The data folder below `$XDG_DATA_HOME/freesynergy/`.
-const DATA_BELOW: &str = "modules/planning";
+/// The data folder below `$XDG_DATA_HOME/freesynergy/`: `modules/<module>`.
+fn data_below() -> String {
+    format!("modules/{PROGRAM}")
+}
 
-const USAGE: &str = "fs-modules-planning [serve] [--socket PATH] [--data DIR] [--instance DOMAIN]\nDefaults: $XDG_RUNTIME_DIR/freesynergy/modules-planning.sock, $XDG_DATA_HOME/freesynergy/modules/planning\nServes the contract tasks.capnp (items, boards); the actor of a request is the user of the connection.";
+const USAGE: &str = "fs-modules-planning [serve] [--socket PATH] [--data DIR] [--instance DOMAIN]\nDefaults: $XDG_RUNTIME_DIR/freesynergy/planning.sock, $XDG_DATA_HOME/freesynergy/modules/planning\nServes the contract tasks.capnp (items, boards); the actor of a request is the user of the connection.";
 
 /// The words of `serve` with the data folder of this module where none was given; a leading `serve` is dropped.
 fn words(args: impl IntoIterator<Item = OsString>) -> Vec<OsString> {
@@ -31,7 +33,7 @@ fn words(args: impl IntoIterator<Item = OsString>) -> Vec<OsString> {
         args.remove(0);
     }
     if !args.iter().any(|a| a == "--data")
-        && let Some(dir) = default_data_dir(DATA_BELOW)
+        && let Some(dir) = default_data_dir(&data_below())
     {
         args.push("--data".into());
         args.push(dir.into_os_string());
@@ -60,6 +62,7 @@ pub fn serve_command(args: impl IntoIterator<Item = OsString>) -> i32 {
         instance,
         ..
     } = options;
+    let beat_socket = socket.clone();
     let identity = ServerIdentity::new("fs-modules-planning", env!("CARGO_PKG_VERSION"));
     let served = run_until_signal_callers(&socket, identity, || async move {
         let data = prepare_data_dir(&data)?;
@@ -72,11 +75,12 @@ pub fn serve_command(args: impl IntoIterator<Item = OsString>) -> i32 {
         if let Some(instance) = instance {
             repo = repo.with_instance(instance);
         }
-        Ok(Planning::new(Arc::new(repo), |why| {
+        let planning = Planning::new(Arc::new(repo), |why| {
             eprintln!(
                 "fs-modules-planning: connection dropped, the system did not say who it is: {why:?}"
             );
-        }))
+        });
+        keep_beat(planning, &beat_socket)
     });
     match served {
         Ok(()) => 0,
@@ -88,5 +92,42 @@ pub fn serve_command(args: impl IntoIterator<Item = OsString>) -> i32 {
             eprintln!("fs-modules-planning: {e}");
             1
         }
+    }
+}
+
+/// The heartbeat of the service (ADR 0104, a duty of every module service): started once the socket is bound, kept as long as the
+/// service serves, and ticked every second by the loop that serves, so a loop that stands still is told apart from a healthy one.
+/// The heartbeat of fs-rpc is Unix only; on Windows there is none yet and the service serves without it.
+#[cfg(unix)]
+fn keep_beat(planning: Planning, socket: &std::path::Path) -> io::Result<Planning> {
+    let beat = std::rc::Rc::new(fs_rpc::Heartbeat::start(socket)?);
+    let tick = beat.clone();
+    let ticker = tokio::task::spawn_local(async move {
+        let mut every = tokio::time::interval(std::time::Duration::from_secs(1));
+        loop {
+            every.tick().await;
+            tick.tick();
+        }
+    });
+    Ok(planning.keeping(Beating { beat, ticker }))
+}
+
+#[cfg(not(unix))]
+#[allow(clippy::unnecessary_wraps)] // the same signature as on Unix
+fn keep_beat(planning: Planning, _: &std::path::Path) -> io::Result<Planning> {
+    Ok(planning)
+}
+
+#[cfg(unix)]
+struct Beating {
+    beat: std::rc::Rc<fs_rpc::Heartbeat>,
+    ticker: tokio::task::JoinHandle<()>,
+}
+
+#[cfg(unix)]
+impl Drop for Beating {
+    fn drop(&mut self) {
+        self.ticker.abort();
+        let _ = &self.beat;
     }
 }

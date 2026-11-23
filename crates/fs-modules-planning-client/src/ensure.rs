@@ -15,8 +15,8 @@ use crate::model::{Error, Kind};
 /// The name of the program of the service (the name it tells in `Control.version`).
 pub const SERVICE_PROGRAM: &str = "fs-modules-planning";
 
-/// The name of the socket program (`$XDG_RUNTIME_DIR/freesynergy/modules-planning.sock`), the same the service uses.
-pub const SOCKET_PROGRAM: &str = "modules-planning";
+/// The name of the module: the socket program (`$XDG_RUNTIME_DIR/freesynergy/planning.sock`), the folder `modules/planning`, the `module` of `catalog/commands.json`. The service uses this very constant.
+pub const SOCKET_PROGRAM: &str = "planning";
 
 /// The socket of the service for this person, if the system has a place for it.
 #[must_use]

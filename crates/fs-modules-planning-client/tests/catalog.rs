@@ -17,7 +17,10 @@ fn the_shipped_catalog_maps_the_commands_to_the_calls_of_the_decision() {
         Some(("Boards.editColumns", "column.create"))
     );
     assert_eq!(call("delete"), Some(("Items.delete", "task.delete")));
-    assert_eq!(catalog.ids().count(), 4, "claim, release, note come later");
+    assert_eq!(catalog.ids().count(), 7);
+    for id in ["claim", "release", "note"] {
+        assert_eq!(call(id).map(|c| c.0), Some("FormSource.invoke"), "{id}");
+    }
 }
 
 #[test]
@@ -28,4 +31,12 @@ fn a_broken_catalog_is_refused_with_the_reason() {
     assert!(Catalog::parse(no_call).unwrap_err().contains("call"));
     assert!(Catalog::parse("{}").is_err());
     assert!(Catalog::parse("not json").is_err());
+}
+
+#[test]
+fn the_catalog_names_the_module_by_the_one_constant_and_carries_the_version() {
+    let text = include_str!("../../../catalog/commands.json");
+    let doc: serde_json::Value = serde_json::from_str(text).unwrap();
+    assert_eq!(doc["module"], fs_modules_planning_client::SOCKET_PROGRAM);
+    assert_eq!(doc["version"], "0.0.1");
 }
