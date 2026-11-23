@@ -98,12 +98,10 @@ async fn a_card_is_moved_through_invoke_with_text_values_only() {
             // every field the catalog names is one the service writes (`due` only for a task that has one)
             let forms: serde_json::Value =
                 serde_json::from_str(include_str!("../../../catalog/forms.json")).unwrap();
-            for name in forms[0]["fields"]
-                .as_object()
-                .unwrap()
-                .keys()
-                .filter(|n| *n != "due")
-            {
+            for name in forms[0]["fields"].as_object().unwrap().keys().filter(|n| {
+                !["due", "priority", "participants", "keywords", "description"]
+                    .contains(&n.as_str())
+            }) {
                 assert!(rows[0].2.iter().any(|(p, _)| p == name), "{name}");
             }
 
@@ -119,7 +117,7 @@ async fn a_card_is_moved_through_invoke_with_text_values_only() {
             let mut invoke = source.client.invoke_request();
             {
                 let mut p = invoke.get();
-                p.set_command("move");
+                p.set_command("planning.move");
                 p.set_record(uid.as_str());
                 let mut args = p.init_args(3);
                 for (i, (k, v)) in [("board", "work"), ("column", "done"), ("index", "0")]
@@ -138,8 +136,8 @@ async fn a_card_is_moved_through_invoke_with_text_values_only() {
 
             // a column that does not exist and a command that does not exist: failed, with the reason
             for (command, column, why) in [
-                ("move", "nowhere", ""),
-                ("fly", "done", "form-source-unknown-command"),
+                ("planning.move", "nowhere", ""),
+                ("planning.fly", "done", "form-source-unknown-command"),
             ] {
                 let mut invoke = source.client.invoke_request();
                 {

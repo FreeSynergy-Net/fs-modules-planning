@@ -14,7 +14,7 @@ Readiness, rank, checklist, progress and claim exist as code only INSIDE the pro
 
 ## Form source (tasks)
 
-The service `fs-modules-planning` is the module `planning`: socket `planning.sock`, data in `modules/planning`, the one constant `fs_modules_planning_client::SOCKET_PROGRAM`. Next to `tasks.capnp` it serves `FormSource` (level 1) on the same socket: form `cards-in-columns@1.0` (`catalog/forms.json`), the write command `move` through `invoke` with text values (`board`, `column`, `index`); `claim`, `release` and `note` are in `catalog/commands.json` but not served yet. It runs the heartbeat of fs-rpc (Unix). `catalog/commands.json` has the version `0.0.1`. In 0.0.x every step may break. In 0.0.x darf jeder Schritt brechen.
+The service `fs-modules-planning` is the module `planning`: socket `planning.sock`, data in `modules/planning`, the one constant `fs_modules_planning_client::SOCKET_PROGRAM`. Next to `tasks.capnp` it serves `FormSource` (level 1) on the same socket: form `cards-in-columns@1.0` (`catalog/forms.json`), the write command `planning.move` through `invoke` with text values (`board`, `column`, `index`); `claim`, `release` and `note` do not exist yet (no service, so not in `catalog/commands.json`). It runs the heartbeat of fs-rpc (Unix). `catalog/commands.json` has the version `0.0.1`. In 0.0.x every step may break. In 0.0.x darf jeder Schritt brechen.
 
 ## Modules that will come (targets, not present)
 

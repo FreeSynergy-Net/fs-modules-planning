@@ -7,16 +7,20 @@
       "cards": "Task",
       "column": "column",
       "title": "title",
-      "facts": ["due", "progress"],
+      "facts": ["due", "progress", "priority", "participants", "keywords"],
       "lane": "board",
-      "move": "move"
+      "move": "planning.move"
     },
     "fields": {
       "column": "text",
       "title": "text",
       "due": "datetime",
       "progress": "text",
-      "board": "text"
+      "board": "text",
+      "priority": "text",
+      "participants": "text",
+      "keywords": "text",
+      "description": "text"
     }
   }
 ]

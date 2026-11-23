@@ -117,7 +117,7 @@ impl Planning {
         let first = response.get()?.get_boards()?.iter().next().map(read_board);
         let id = match first {
             Some(snapshot) => snapshot?.id,
-            None if self.caps.contains("board.create") => {
+            None if self.caps.contains("planning.board.create") => {
                 let mut request = boards.create_request();
                 request.get().set_name(FIRST_BOARD);
                 let response = request.send().promise.await?;
@@ -167,7 +167,7 @@ impl Planning {
     /// A new card with `title` at the end of the column `column_id` (command `create`, then `move`).
     ///
     /// # Errors
-    /// The service does not report `task.create`/`card.move`, the column does not exist, or what the service said.
+    /// The service does not report `planning.task.create`/`planning.card.move`, the column does not exist, or what the service said.
     pub async fn add_card(&mut self, column_id: &str, title: &str) -> Result<Card, Error> {
         self.need(Operation::AddCard)?;
         self.need(Operation::Move)?;
@@ -190,7 +190,7 @@ impl Planning {
     /// Put the card `uid` in the column `column_id` at `index` (end if `None`; command `move`).
     ///
     /// # Errors
-    /// The service does not report `card.move`, the column does not exist, or what the service said.
+    /// The service does not report `planning.card.move`, the column does not exist, or what the service said.
     pub async fn move_card(
         &mut self,
         uid: &str,

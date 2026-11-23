@@ -96,6 +96,7 @@ impl FormSourceImpl {
                     if let Some(progress) = &task.progress {
                         row.push(("progress", progress.clone()));
                     }
+                    row.extend(crate::facts::of(task));
                     out.push(row);
                 }
             }
@@ -146,7 +147,7 @@ impl form_source::Server for FormSourceImpl {
             for (i, row) in (0u32..).zip(&rows) {
                 let mut view: record_view::Builder<'_> = list.reborrow().get(i);
                 view.set_id(row[0].1.as_str());
-                view.reborrow().init_may(1).set(0, "move");
+                view.reborrow().init_may(1).set(0, "planning.move");
                 let mut values = view.init_values(count(row.len() - 1)?);
                 for (j, (path, text)) in (0u32..).zip(&row[1..]) {
                     set_value(values.reborrow().get(j), path, text);
@@ -176,7 +177,7 @@ impl form_source::Server for FormSourceImpl {
         let p = params.get()?;
         let command = p.get_command()?.to_string()?;
         let result = match command.as_str() {
-            "move" => {
+            "planning.move" => {
                 self.move_card(p.get_record()?.to_string()?, p.get_args()?)
                     .await
             }

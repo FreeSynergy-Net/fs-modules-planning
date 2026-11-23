@@ -85,7 +85,8 @@ async fn it_serves_keeps_its_data_below_xdg_and_runs_once() {
                 .map(|i| i.unwrap().to_string().unwrap())
                 .collect();
             assert!(
-                ids.iter().any(|i| i == "board.open") && ids.iter().any(|i| i == "card.move"),
+                ids.iter().any(|i| i == "planning.board.open")
+                    && ids.iter().any(|i| i == "planning.card.move"),
                 "{ids:?}"
             );
             // the heartbeat of the service answers next to the socket (a duty of every module service)

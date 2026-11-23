@@ -37,12 +37,17 @@ async fn the_service_reports_what_the_host_may_unlock() {
             ] {
                 assert!(planning.can(op), "{op:?}");
             }
-            for id in ["create", "move", "column.create", "delete"] {
+            for id in [
+                "planning.create",
+                "planning.move",
+                "planning.column.create",
+                "planning.delete",
+            ] {
                 assert!(planning.can_command(id), "{id}");
             }
             assert!(
-                !planning.can_command("claim"),
-                "the catalog has it, the service does not report its capability yet"
+                !planning.can_command("planning.claim"),
+                "no such command: the catalog does not list it, the service does not serve it"
             );
         })
         .await;

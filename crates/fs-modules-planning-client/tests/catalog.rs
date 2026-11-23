@@ -1,4 +1,4 @@
-//! The command catalog file of the module: command id to contract call.
+//! The command catalog file of the module: command id to contract call, and the duties of the host towards the file.
 
 use fs_modules_planning_client::Catalog;
 
@@ -10,16 +10,31 @@ fn the_shipped_catalog_maps_the_commands_to_the_calls_of_the_decision() {
             .command(id)
             .map(|c| (c.call.as_str(), c.capability.as_str()))
     };
-    assert_eq!(call("create"), Some(("Items.create", "task.create")));
-    assert_eq!(call("move"), Some(("Boards.moveCard", "card.move")));
     assert_eq!(
-        call("column.create"),
-        Some(("Boards.editColumns", "column.create"))
+        call("planning.create"),
+        Some(("Items.create", "planning.task.create"))
     );
-    assert_eq!(call("delete"), Some(("Items.delete", "task.delete")));
-    assert_eq!(catalog.ids().count(), 7);
-    for id in ["claim", "release", "note"] {
-        assert_eq!(call(id).map(|c| c.0), Some("FormSource.invoke"), "{id}");
+    assert_eq!(
+        call("planning.move"),
+        Some(("Boards.moveCard", "planning.card.move"))
+    );
+    assert_eq!(
+        call("planning.column.create"),
+        Some(("Boards.editColumns", "planning.column.create"))
+    );
+    assert_eq!(
+        call("planning.delete"),
+        Some(("Items.delete", "planning.task.delete"))
+    );
+    // claim, release and note are NOT in the file: a command without a service behind it would be a lie
+    assert_eq!(catalog.ids().count(), 4);
+    for id in [
+        "planning.claim",
+        "planning.release",
+        "planning.note",
+        "claim",
+    ] {
+        assert!(catalog.command(id).is_none(), "{id}");
     }
 }
 
@@ -33,10 +48,46 @@ fn a_broken_catalog_is_refused_with_the_reason() {
     assert!(Catalog::parse("not json").is_err());
 }
 
+/// The duties the host (fs-starter v0.0.5, `registry/read.rs` + `registry/names.rs`) puts on the file; a stand-in until the one
+/// conformance test of every module exists (card "fs-conformance" in the report).
 #[test]
-fn the_catalog_names_the_module_by_the_one_constant_and_carries_the_version() {
+fn the_file_keeps_the_duties_of_the_host() {
     let text = include_str!("../../../catalog/commands.json");
     let doc: serde_json::Value = serde_json::from_str(text).unwrap();
-    assert_eq!(doc["module"], fs_modules_planning_client::SOCKET_PROGRAM);
+    let module = fs_modules_planning_client::SOCKET_PROGRAM;
+    assert_eq!(doc["module"], module);
+    assert_eq!(doc["contract"], doc["module"]);
+    assert_eq!(doc["scope"], "own-contract");
     assert_eq!(doc["version"], "0.0.1");
+    let word = |s: &str| {
+        !s.is_empty()
+            && s.bytes()
+                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-' || b == b'_')
+    };
+    let commands = doc["commands"].as_array().unwrap();
+    assert!(commands.len() >= 4);
+    let space = format!("{module}.");
+    for c in commands {
+        let id = c["id"].as_str().unwrap();
+        assert!(id.starts_with(&space), "{id}");
+        assert!(
+            id.split('.').count() >= 2 && id.split('.').all(word),
+            "{id}"
+        );
+        assert!(
+            c["capability"].as_str().unwrap().starts_with(&space),
+            "{id}"
+        );
+        assert!(
+            ["read", "write", "delete"].contains(&c["access"].as_str().unwrap()),
+            "{id}"
+        );
+        for key in [
+            &c["help"]["topic"],
+            &c["help"]["text"]["en"],
+            &c["help"]["text"]["de"],
+        ] {
+            assert!(!key.as_str().unwrap_or("").is_empty(), "{id}");
+        }
+    }
 }

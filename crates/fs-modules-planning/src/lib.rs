@@ -17,6 +17,7 @@
 mod boards;
 mod both;
 mod errors;
+mod facts;
 mod formsource;
 mod items;
 mod root;

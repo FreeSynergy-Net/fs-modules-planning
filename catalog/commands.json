@@ -1,14 +1,24 @@
 {
   "module": "planning",
   "version": "0.0.1",
-  "contract": "tasks",
+  "contract": "planning",
+  "scope": "own-contract",
   "commands": [
-    { "id": "create", "call": "Items.create", "capability": "task.create" },
-    { "id": "move", "call": "Boards.moveCard", "capability": "card.move" },
-    { "id": "column.create", "call": "Boards.editColumns", "capability": "column.create" },
-    { "id": "delete", "call": "Items.delete", "capability": "task.delete" },
-    { "id": "claim", "call": "FormSource.invoke", "capability": "task.claim" },
-    { "id": "release", "call": "FormSource.invoke", "capability": "task.release" },
-    { "id": "note", "call": "FormSource.invoke", "capability": "task.note" }
+    {
+      "id": "planning.create", "call": "Items.create", "capability": "planning.task.create", "access": "write",
+      "help": { "topic": "planning-create", "text": { "en": "Make a new task and put it in a column.", "de": "Legt eine neue Aufgabe an und stellt sie in eine Spalte." } }
+    },
+    {
+      "id": "planning.move", "call": "Boards.moveCard", "capability": "planning.card.move", "access": "write",
+      "help": { "topic": "planning-move", "text": { "en": "Move a card to another column or place.", "de": "Verschiebt eine Karte in eine andere Spalte oder an eine andere Stelle." } }
+    },
+    {
+      "id": "planning.column.create", "call": "Boards.editColumns", "capability": "planning.column.create", "access": "write",
+      "help": { "topic": "planning-column-create", "text": { "en": "Add a column to a board.", "de": "Fügt einem Board eine Spalte hinzu." } }
+    },
+    {
+      "id": "planning.delete", "call": "Items.delete", "capability": "planning.task.delete", "access": "delete",
+      "help": { "topic": "planning-delete", "text": { "en": "Delete a task.", "de": "Löscht eine Aufgabe." } }
+    }
   ]
 }
