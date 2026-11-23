@@ -3,10 +3,14 @@
 //! Unix only: the folders need Unix permissions; the client tests (transport and board) are the ones that run on Windows too.
 #![cfg(unix)]
 
+mod common;
+
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
 
+use common::{invoke, titles};
+use fs_interfaces::formsource_capnp::form_source;
 use fs_interfaces::tasks_capnp::tasks;
 use tokio::task::LocalSet;
 
@@ -147,4 +151,55 @@ fn it_says_what_it_does_and_what_was_wrong() {
     assert!(String::from_utf8_lossy(&help.stdout).contains("tasks.capnp"));
     let bad = run(&["--no-such-flag"]);
     assert_eq!(bad.status.code(), Some(2));
+}
+
+/// The real program in temporary XDG folders: a card made and moved by commands is still there after the program was stopped and
+/// started again (the data are in the folder of the module, not in the window or the process).
+#[tokio::test(flavor = "current_thread")]
+async fn a_card_made_by_commands_is_still_there_after_a_restart() {
+    let home = private_dirs();
+    let socket = home.path().join("run").join("p.sock");
+    let connect = || async {
+        let deadline = Instant::now() + Duration::from_secs(20);
+        loop {
+            match fs_rpc::connect::<form_source::Client>(&socket).await {
+                Ok(c) => return c,
+                Err(e) => {
+                    assert!(
+                        Instant::now() < deadline,
+                        "the service did not come up: {e}"
+                    );
+                    tokio::time::sleep(Duration::from_millis(100)).await;
+                }
+            }
+        }
+    };
+    let first = start(home.path(), &socket);
+    LocalSet::new()
+        .run_until(async {
+            let source = connect().await;
+            let tasks = fs_rpc::connect::<tasks::Client>(&socket).await.unwrap();
+            let boards = tasks.client.boards_request().send().pipeline.get_boards();
+            let mut board = boards.create_request();
+            board.get().set_name("work");
+            board.send().promise.await.unwrap();
+            let new_card = [("title", "Probe"), ("board", "work"), ("column", "todo")];
+            let made = invoke(&source.client, "task.create", "", &new_card).await;
+            assert!(!made.failed, "{made:?}");
+            let to = [("board", "work"), ("column", "doing"), ("index", "0")];
+            let moved = invoke(&source.client, "card.move", &made.record, &to).await;
+            assert!(!moved.failed, "{moved:?}");
+            assert_eq!(titles(&source.client).await, ["doing/Probe"]);
+        })
+        .await;
+    drop(first);
+    let _ = std::fs::remove_file(&socket);
+    let again = start(home.path(), &socket);
+    LocalSet::new()
+        .run_until(async {
+            let source = connect().await;
+            assert_eq!(titles(&source.client).await, ["doing/Probe"]);
+        })
+        .await;
+    drop(again);
 }

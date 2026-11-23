@@ -74,12 +74,10 @@ impl Planning {
         self.caps.contains(operation.capability())
     }
 
-    /// Whether the command of the catalog can run: the catalog has it and the service reported its capability.
+    /// Whether the command of the catalog can run: the catalog has it and the service reported its capability (the key is both).
     #[must_use]
-    pub fn can_command(&self, id: &str) -> bool {
-        self.catalog
-            .command(id)
-            .is_some_and(|c| self.caps.contains(c.contract_capability()))
+    pub fn can_command(&self, key: &str) -> bool {
+        self.catalog.command(key).is_some() && self.caps.contains(key)
     }
 
     /// The catalog this client runs commands from.

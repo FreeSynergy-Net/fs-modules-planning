@@ -9,7 +9,7 @@
       "title": "title",
       "facts": ["due", "priority", "participants", "keywords"],
       "lane": "board",
-      "move": "planning.move"
+      "move": "card.move"
     },
     "fields": {
       "column": "text",

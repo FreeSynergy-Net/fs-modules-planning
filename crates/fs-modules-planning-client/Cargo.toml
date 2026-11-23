@@ -25,4 +25,5 @@ fs-modules-planning = { path = "../fs-modules-planning" }
 fs-tasks-core = { path = "../fs-tasks-core" }
 fs-objects = { git = "https://github.com/FreeSynergy-Net/fs-objects", tag = "v0.0.10" }
 tempfile = "3"
+semver = "1"
 tokio = { version = "1", features = ["rt", "net", "sync", "time", "macros"] }

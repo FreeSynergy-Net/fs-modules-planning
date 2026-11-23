@@ -1,46 +1,85 @@
-//! The command catalog file of the module: command id to contract call, and the duties of the host towards the file.
+//! The command catalog file of the module: commands by capability key of the contract, with their arguments, and the duties of the host
+//! towards the file.
 
 use fs_modules_planning_client::Catalog;
 
 #[test]
-fn the_shipped_catalog_maps_the_commands_to_the_calls_of_the_decision() {
+fn the_shipped_catalog_names_the_commands_by_contract_key_with_their_arguments() {
     let catalog = Catalog::bundled();
-    let call = |id: &str| {
-        catalog
-            .command(id)
-            .map(|c| (c.call.as_str(), c.capability.as_str()))
+    let keys: Vec<&str> = catalog.keys().collect();
+    assert_eq!(keys, ["card.move", "task.create", "task.delete"]);
+    let args = |key: &str| {
+        let c = catalog.command(key).unwrap();
+        c.params
+            .iter()
+            .map(|p| (p.path.as_str(), p.kind.as_str(), p.required))
+            .collect::<Vec<_>>()
     };
     assert_eq!(
-        call("planning.move"),
-        Some(("Boards.moveCard", "planning.card.move"))
+        catalog.command("card.move").unwrap().call,
+        "Boards.moveCard"
     );
-    // only what a service serves: `FormSource.invoke` serves `planning.move`; create, column.create, delete come with the write path (card SCHREIBWEG)
-    assert_eq!(catalog.ids().count(), 1);
-    for id in [
+    assert_eq!(
+        args("card.move"),
+        [
+            ("board", "text", true),
+            ("column", "text", true),
+            ("index", "number", false)
+        ]
+    );
+    assert_eq!(catalog.command("task.create").unwrap().call, "Items.create");
+    assert_eq!(
+        args("task.create"),
+        [
+            ("title", "text", true),
+            ("board", "text", true),
+            ("column", "text", true),
+            ("index", "number", false)
+        ]
+    );
+    assert_eq!(catalog.command("task.delete").unwrap().call, "Items.delete");
+    assert_eq!(args("task.delete"), Vec::new());
+    // the old names, the prefixed ones and what no service serves are not in it
+    for key in [
+        "planning.move",
+        "planning.card.move",
         "planning.create",
-        "planning.column.create",
-        "planning.delete",
-        "planning.claim",
-        "planning.release",
-        "planning.note",
+        "column.create",
+        "task.claim",
         "claim",
     ] {
-        assert!(catalog.command(id).is_none(), "{id}");
+        assert!(catalog.command(key).is_none(), "{key}");
     }
 }
 
 #[test]
 fn a_broken_catalog_is_refused_with_the_reason() {
-    let twice = r#"{"commands":[{"id":"a","call":"X.y","capability":"c"},{"id":"a","call":"X.z","capability":"c"}]}"#;
+    let command = |extra: &str| {
+        format!(r#"{{"commands":[{{"capability":"a.b","call":"X.y","params":[]{extra}}}]}}"#)
+    };
+    assert!(Catalog::parse(&command("")).is_ok());
+    assert!(
+        Catalog::parse(&command(r#","id":"planning.a""#))
+            .unwrap_err()
+            .contains("`id`")
+    );
+    let twice = r#"{"commands":[{"capability":"a","call":"X.y","params":[]},{"capability":"a","call":"X.z","params":[]}]}"#;
     assert!(Catalog::parse(twice).unwrap_err().contains("twice"));
-    let no_call = r#"{"commands":[{"id":"a","capability":"c"}]}"#;
+    let no_call = r#"{"commands":[{"capability":"a","params":[]}]}"#;
     assert!(Catalog::parse(no_call).unwrap_err().contains("call"));
+    let no_params = r#"{"commands":[{"capability":"a","call":"X.y"}]}"#;
+    assert!(Catalog::parse(no_params).unwrap_err().contains("params"));
+    let param_twice = r#"{"commands":[{"capability":"a","call":"X.y","params":[{"path":"p","type":"text"},{"path":"p","type":"text"}]}]}"#;
+    assert!(Catalog::parse(param_twice).unwrap_err().contains("twice"));
+    let no_type = r#"{"commands":[{"capability":"a","call":"X.y","params":[{"path":"p"}]}]}"#;
+    assert!(Catalog::parse(no_type).unwrap_err().contains("type"));
     assert!(Catalog::parse("{}").is_err());
     assert!(Catalog::parse("not json").is_err());
 }
 
-/// The duties the host (fs-starter v0.0.5, `registry/read.rs` + `registry/names.rs`) puts on the file; a stand-in until the one
-/// conformance test of every module exists (card "fs-conformance" in the report).
+/// The duties the host puts on the file (fs-starter, from v0.0.7 on: `capability` = key of the contract, the id derived as
+/// `<module>.<key>`, `params`; before: `registry/read.rs` + `registry/names.rs`); a stand-in until the one conformance test of every
+/// module exists (card "fs-conformance" in the report).
 #[test]
 fn the_file_keeps_the_duties_of_the_host() {
     let text = include_str!("../../../catalog/commands.json");
@@ -49,53 +88,45 @@ fn the_file_keeps_the_duties_of_the_host() {
     assert_eq!(doc["module"], module);
     assert_eq!(doc["contract"], doc["module"]);
     assert_eq!(doc["scope"], "own-contract");
-    assert_eq!(doc["version"], "0.0.1");
+    // three parts (`semver`, version rule V); the set changed with the move to keys, so 0.0.2
+    let version = semver::Version::parse(doc["version"].as_str().unwrap()).unwrap();
+    assert_eq!(version, semver::Version::new(0, 0, 2));
     let word = |s: &str| {
         !s.is_empty()
             && s.bytes()
                 .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-' || b == b'_')
     };
     let commands = doc["commands"].as_array().unwrap();
-    assert_eq!(commands.len(), 1, "planning.move only");
-    let space = format!("{module}.");
+    assert_eq!(commands.len(), 3);
     for c in commands {
-        let id = c["id"].as_str().unwrap();
-        assert!(id.starts_with(&space), "{id}");
-        assert!(
-            id.split('.').count() >= 2 && id.split('.').all(word),
-            "{id}"
-        );
-        assert!(
-            c["capability"].as_str().unwrap().starts_with(&space),
-            "{id}"
-        );
+        let key = c["capability"].as_str().unwrap();
+        assert!(c.get("id").is_none(), "{key}: no id, the host derives it");
+        assert!(!key.starts_with(&format!("{module}.")), "{key}: no prefix");
+        // the key is in the one list of the contract, and its parts are words (the derived id `planning.<key>` has two or more)
+        assert!(fs_interfaces::capabilities::is_known(key), "{key}");
+        assert!(key.split('.').all(word), "{key}");
         assert!(
             ["read", "write", "delete"].contains(&c["access"].as_str().unwrap()),
-            "{id}"
+            "{key}"
         );
         for key in [
             &c["help"]["topic"],
             &c["help"]["text"]["en"],
             &c["help"]["text"]["de"],
         ] {
-            assert!(!key.as_str().unwrap_or("").is_empty(), "{id}");
+            assert!(!key.as_str().unwrap_or("").is_empty(), "{key}");
         }
     }
 }
 
-/// The file names the capability with the prefix of the module (the host asks for it there); the service reports the ids of the
-/// contract. The two worlds meet in `contract_capability`, and every command of the file is one the service reports.
+/// The service reports the keys of the contract, and every command of the file is one of them (the same word on both sides).
 #[test]
-fn the_file_and_the_service_use_two_kinds_of_ids_and_they_meet() {
+fn the_file_and_the_service_use_the_same_keys() {
     let catalog = Catalog::bundled();
-    for id in catalog.ids() {
-        let c = catalog.command(id).unwrap();
-        assert!(c.capability.starts_with("planning."), "{id}");
-        let contract = c.contract_capability();
-        assert!(!contract.starts_with("planning."), "{id}: {contract}");
+    for key in catalog.keys() {
         assert!(
-            fs_modules_planning::CAPABILITIES.contains(&contract),
-            "{id}: the service does not report {contract}"
+            fs_modules_planning::CAPABILITIES.contains(&key),
+            "{key}: the service does not report it"
         );
     }
     for id in fs_modules_planning::CAPABILITIES {

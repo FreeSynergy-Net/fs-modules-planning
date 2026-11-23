@@ -37,18 +37,16 @@ async fn the_service_reports_what_the_host_may_unlock() {
             ] {
                 assert!(planning.can(op), "{op:?}");
             }
-            assert!(planning.can_command("planning.move"));
-            for id in [
-                "planning.create",
-                "planning.column.create",
-                "planning.delete",
-            ] {
-                assert!(!planning.can_command(id), "{id}: no service behind it");
+            // every command of the catalog is one the service reports, by its key of the contract
+            for key in ["card.move", "task.create", "task.delete"] {
+                assert!(planning.can_command(key), "{key}");
             }
-            assert!(
-                !planning.can_command("planning.claim"),
-                "no such command: the catalog does not list it, the service does not serve it"
-            );
+            for key in ["planning.card.move", "task.claim", "claim", "column.create"] {
+                assert!(
+                    !planning.can_command(key),
+                    "{key}: the catalog does not list it"
+                );
+            }
         })
         .await;
 }

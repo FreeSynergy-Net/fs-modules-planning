@@ -62,3 +62,93 @@ pub fn field<'a>(row: &'a (String, String, Vec<(String, String)>), name: &str) -
         .find(|(p, _)| p == name)
         .map_or("", |(_, t)| t.as_str())
 }
+
+/// The answer of one `invoke`: what failed (the type and the detail of the problem) or what the command made.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Answer {
+    pub failed: bool,
+    pub kind: String,
+    pub detail: String,
+    pub record: String,
+    pub text: String,
+}
+
+/// One `invoke` by the capability key, every value a text.
+pub async fn invoke(
+    source: &form_source::Client,
+    command: &str,
+    record: &str,
+    pairs: &[(&str, &str)],
+) -> Answer {
+    let mut request = source.invoke_request();
+    {
+        let mut p = request.get();
+        p.set_command(command);
+        p.set_record(record);
+        let mut args = p.init_args(u32::try_from(pairs.len()).unwrap());
+        for (i, (k, v)) in pairs.iter().enumerate() {
+            let mut a = args.reborrow().get(u32::try_from(i).unwrap());
+            a.set_path(k);
+            a.set_text(v);
+        }
+    }
+    let answer = request.send().promise.await.unwrap();
+    let answer = answer.get().unwrap();
+    let text = |r: capnp::Result<capnp::text::Reader<'_>>| r.unwrap().to_string().unwrap();
+    let problem = answer.get_problem().unwrap();
+    let result = answer.get_result().unwrap();
+    Answer {
+        failed: answer.get_failed(),
+        kind: text(problem.get_type()),
+        detail: text(problem.get_detail()),
+        record: text(result.get_record()),
+        text: text(result.get_text()),
+    }
+}
+
+/// `Ok(record)` when the command ran, else the problem type and its detail.
+pub async fn call(
+    source: &form_source::Client,
+    command: &str,
+    record: &str,
+    pairs: &[(&str, &str)],
+) -> Result<String, (String, String)> {
+    let a = invoke(source, command, record, pairs).await;
+    if a.failed {
+        Err((a.kind, a.detail))
+    } else {
+        Ok(a.record)
+    }
+}
+
+/// A board `work` with the given titles (standard columns, the cards in `todo` in that order); the uids of the cards.
+pub async fn board_with(
+    socket: &std::path::Path,
+    source: &form_source::Client,
+    titles: &[&str],
+) -> Vec<String> {
+    use fs_interfaces::tasks_capnp::tasks;
+    use fs_tasks_core::Task;
+    let tasks = fs_rpc::connect::<tasks::Client>(socket).await.unwrap();
+    let boards = tasks.client.boards_request().send().pipeline.get_boards();
+    let mut create = boards.create_request();
+    create.get().set_name("work");
+    create.send().promise.await.unwrap();
+    let items = tasks.client.items_request().send().pipeline.get_items();
+    for title in titles {
+        let mut add = items.create_request();
+        add.get()
+            .set_jscalendar(Task::new(*title).to_value().to_string().as_str());
+        add.send().promise.await.unwrap();
+    }
+    let rows = page(source, "cards-in-columns@1.0", "work").await.unwrap();
+    rows.into_iter().map(|r| r.0).collect()
+}
+
+/// The titles of the page of `work`, column by column (the order of the layout), as `column/title`.
+pub async fn titles(source: &form_source::Client) -> Vec<String> {
+    let rows = page(source, "cards-in-columns@1.0", "work").await.unwrap();
+    rows.iter()
+        .map(|r| format!("{}/{}", field(r, "column"), field(r, "title")))
+        .collect()
+}

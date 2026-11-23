@@ -23,6 +23,9 @@ mod items;
 mod root;
 mod serve;
 mod wire;
+mod write;
+#[cfg(test)]
+mod write_tests;
 
 pub use formsource::{FORM_CARDS, PROVIDER};
 pub use root::{CAPABILITIES, CONTRACT_VERSION, Planning, actor_of};

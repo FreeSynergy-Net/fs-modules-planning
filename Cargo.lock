@@ -676,6 +676,7 @@ dependencies = [
  "fs-objects",
  "fs-rpc",
  "fs-tasks-core",
+ "semver",
  "serde_json",
  "tempfile",
  "tokio",

@@ -1,10 +1,10 @@
 //! `FormSource` next to `Tasks` on one socket, over a real service in a temporary folder: hello, a page of cards by column, and the
-//! first write: `move` through `invoke` with nothing but text values.
+//! first write: `card.move` through `invoke` with nothing but text values.
 #![cfg(unix)]
 
 mod common;
 
-use common::{field, page, serve};
+use common::{call, field, invoke, page, serve};
 use fs_interfaces::formsource_capnp::form_source;
 use fs_interfaces::tasks_capnp::tasks;
 use fs_modules_planning::{FORM_CARDS, PROVIDER};
@@ -62,58 +62,35 @@ async fn a_card_is_moved_through_invoke_with_text_values_only() {
                 .unwrap_err();
             assert!(e.to_string().contains("form-source-unknown-scope"), "{e}");
 
-            // moveCard through invoke, every value a text
-            let mut invoke = source.client.invoke_request();
-            {
-                let mut p = invoke.get();
-                p.set_command("planning.move");
-                p.set_record(uid.as_str());
-                let mut args = p.init_args(3);
-                for (i, (k, v)) in [("board", "work"), ("column", "done"), ("index", "0")]
-                    .into_iter()
-                    .enumerate()
-                {
-                    let mut a = args.reborrow().get(u32::try_from(i).unwrap());
-                    a.set_path(k);
-                    a.set_text(v);
-                }
-            }
-            let done = invoke.send().promise.await.unwrap();
-            assert!(!done.get().unwrap().get_failed());
+            // card.move through invoke, every value a text; the answer names the card it moved
+            let moved = invoke(
+                &source.client,
+                "card.move",
+                &uid,
+                &[("board", "work"), ("column", "done"), ("index", "0")],
+            )
+            .await;
+            assert!(!moved.failed, "{moved:?}");
+            assert_eq!(
+                (moved.record.as_str(), moved.text.as_str()),
+                (uid.as_str(), "card-moved")
+            );
             let rows = page(&source.client, FORM_CARDS, "work").await.unwrap();
             assert_eq!(field(&rows[0], "column"), "done");
 
-            // a column that does not exist and a command that does not exist: failed, with the reason
-            for (command, column, why) in [
-                ("planning.move", "nowhere", ""),
-                ("planning.fly", "done", "form-source-unknown-command"),
-            ] {
-                let mut invoke = source.client.invoke_request();
-                {
-                    let mut p = invoke.get();
-                    p.set_command(command);
-                    p.set_record(uid.as_str());
-                    let mut args = p.init_args(2);
-                    for (i, (k, v)) in [("board", "work"), ("column", column)]
-                        .into_iter()
-                        .enumerate()
-                    {
-                        let mut a = args.reborrow().get(u32::try_from(i).unwrap());
-                        a.set_path(k);
-                        a.set_text(v);
-                    }
-                }
-                let answer = invoke.send().promise.await.unwrap();
-                let answer = answer.get().unwrap();
-                assert!(answer.get_failed(), "{command}");
-                let detail = answer
-                    .get_problem()
-                    .unwrap()
-                    .get_type()
-                    .unwrap()
-                    .to_string()
-                    .unwrap();
-                assert!(detail.contains(why), "{detail}");
+            // a column that does not exist is a refusal of the core (not a break of the module); a command with the prefix of the host
+            // or one nobody serves is `unknown-command`: the wire name is the key of the contract
+            let nowhere = [("board", "work"), ("column", "nowhere")];
+            let (kind, why) = call(&source.client, "card.move", &uid, &nowhere)
+                .await
+                .unwrap_err();
+            assert_eq!(kind, "form-source-rejected", "{why}");
+            assert!(why.contains("nowhere"), "{why}");
+            for command in ["planning.card.move", "planning.move", "card.fly"] {
+                let (kind, _) = call(&source.client, command, &uid, &nowhere)
+                    .await
+                    .unwrap_err();
+                assert_eq!(kind, "form-source-unknown-command", "{command}");
             }
         })
         .await;
