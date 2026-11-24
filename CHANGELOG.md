@@ -2,6 +2,10 @@
 
 Version = tag.
 
+## Unreleased
+
+- Re-pin: fs-rpc to rev `0120f9af` (fs-rpc main) and fs-person-service (feature `client`) to rev `4d56e954` of fs-modules-person (same fs-rpc); `Cargo.lock` by cargo. One fs-rpc in the graph; no doubled `fs-*` crate in `cargo tree -d`.
+
 ## 0.0.4
 
 English
