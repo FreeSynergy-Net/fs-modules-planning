@@ -12,18 +12,18 @@ rust-version.workspace = true
 name = "fs_modules_planning_client"
 
 [dependencies]
-fs-rpc = { git = "https://github.com/FreeSynergy-Net/fs-rpc", rev = "0120f9afadf5b74540e8df3f0dfdd1b2edb4e1d4", version = "0.1.4" }
-fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "e6f69213b68b47e139fc8038c8a095f9ed1fef3c", version = "0.2.0" }
-fs-jscalendar = { git = "https://github.com/FreeSynergy-Net/fs-jscalendar", tag = "v0.0.7" }
+fs-rpc = { git = "https://github.com/FreeSynergy-Net/fs-rpc", rev = "9cbce63c73045a2ea32b88038fd35732c4762624", version = "0.1.4" }
+fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "2bb70d826681403894ec6d65a7fad9d3a3f51ac2", version = "0.2.0" }
+fs-jscalendar = { git = "https://github.com/FreeSynergy-Net/fs-jscalendar", rev = "0a3add97339c92be0ab8b524a294ca44ee8dca25", version = "0.0.7" }
 capnp = "0.27"
 capnp-rpc = "0.27"
 serde_json = "1"
 tokio = { version = "1", features = ["rt", "net", "sync", "time"] }
 
 [dev-dependencies]
-fs-modules-planning = { path = "../fs-modules-planning" }
-fs-tasks-core = { path = "../fs-tasks-core" }
-fs-objects = { git = "https://github.com/FreeSynergy-Net/fs-objects", rev = "f6409f2a5378ba1464e69ae216efd4d27d249182", version = "0.0.11", features = ["testing"] }
+fs-modules-planning = { path = "../fs-modules-planning", version = "0.0.4" }
+fs-tasks-core = { path = "../fs-tasks-core", version = "0.0.4" }
+fs-objects = { git = "https://github.com/FreeSynergy-Net/fs-objects", rev = "e38093f1ec61b7c9faaa6f6046f65addb11dcf46", version = "0.0.11", features = ["testing"] }
 tempfile = "3"
 semver = "1"
 tokio = { version = "1", features = ["rt", "net", "sync", "time", "macros"] }

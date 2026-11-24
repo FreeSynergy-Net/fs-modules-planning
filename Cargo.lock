@@ -275,20 +275,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
-name = "calcard"
-version = "0.3.14"
+name = "calcard-next"
+version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c601473ec15a875626bce73db1a1f0fc81e9c949ca25f1463b714947c0a70a1f"
+checksum = "102aeeccb571c36325fc6e6d2f0707a9433922f3d323b4707d081f77a37c23e9"
 dependencies = [
  "ahash",
- "chrono",
- "chrono-tz",
- "hashify",
+ "encodify",
+ "encoding_rs",
+ "hashify 0.3.2",
+ "jiff",
  "jmap-tools",
- "mail-builder",
- "mail-parser",
  "serde",
  "serde_json",
+ "thiserror",
  "uuid",
 ]
 
@@ -386,16 +386,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "chrono-tz"
-version = "0.10.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a6139a8597ed92cf816dfb33f5dd6cf0bb93a6adc938f11039f371bc5bcd26c3"
-dependencies = [
- "chrono",
- "phf",
-]
-
-[[package]]
 name = "cipher"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -436,6 +426,12 @@ name = "core-foundation-sys"
 version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
+
+[[package]]
+name = "core_detect"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f8f80099a98041a3d1622845c271458a2d73e688351bf3cb999266764b81d48"
 
 [[package]]
 name = "cpufeatures"
@@ -558,6 +554,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9eb1aa714776b75c7e67e1da744b81a129b3ff919c8712b5e1b32252c1f07cc7"
 
 [[package]]
+name = "encodify"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab7f638cb35e10aa08efd439d11ddcbeef7d52dd987c4956a6ff2cc1061020f3"
+dependencies = [
+ "memchr",
+ "simdutf8",
+]
+
+[[package]]
+name = "encoding_rs"
+version = "0.8.44"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "89253175e704ab869b04f9db224d38630e0211a53841a79181deae0889e169f5"
+dependencies = [
+ "cfg-if",
+ "core_detect",
+ "multiversion_no_op",
+ "rustversion",
+ "scopeguard",
+ "simdutf8",
+]
+
+[[package]]
 name = "env_filter"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -635,7 +655,7 @@ dependencies = [
 [[package]]
 name = "fs-interfaces"
 version = "0.2.0"
-source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=e6f69213b68b47e139fc8038c8a095f9ed1fef3c#e6f69213b68b47e139fc8038c8a095f9ed1fef3c"
+source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=2bb70d826681403894ec6d65a7fad9d3a3f51ac2#2bb70d826681403894ec6d65a7fad9d3a3f51ac2"
 dependencies = [
  "capnp",
  "fs-types",
@@ -645,9 +665,9 @@ dependencies = [
 [[package]]
 name = "fs-jscalendar"
 version = "0.0.7"
-source = "git+https://github.com/FreeSynergy-Net/fs-jscalendar?tag=v0.0.7#14c7026184720fb3c4d179b11a549739498a3efa"
+source = "git+https://github.com/FreeSynergy-Net/fs-jscalendar?rev=0a3add97339c92be0ab8b524a294ca44ee8dca25#0a3add97339c92be0ab8b524a294ca44ee8dca25"
 dependencies = [
- "calcard",
+ "calcard-next",
  "chrono",
  "fs-types",
  "jiff",
@@ -661,7 +681,7 @@ dependencies = [
 [[package]]
 name = "fs-module"
 version = "0.2.0"
-source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=e6f69213b68b47e139fc8038c8a095f9ed1fef3c#e6f69213b68b47e139fc8038c8a095f9ed1fef3c"
+source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=2bb70d826681403894ec6d65a7fad9d3a3f51ac2#2bb70d826681403894ec6d65a7fad9d3a3f51ac2"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -711,7 +731,7 @@ dependencies = [
 [[package]]
 name = "fs-objects"
 version = "0.0.11"
-source = "git+https://github.com/FreeSynergy-Net/fs-objects?rev=f6409f2a5378ba1464e69ae216efd4d27d249182#f6409f2a5378ba1464e69ae216efd4d27d249182"
+source = "git+https://github.com/FreeSynergy-Net/fs-objects?rev=e38093f1ec61b7c9faaa6f6046f65addb11dcf46#e38093f1ec61b7c9faaa6f6046f65addb11dcf46"
 dependencies = [
  "async-trait",
  "base64",
@@ -731,7 +751,7 @@ dependencies = [
 [[package]]
 name = "fs-person"
 version = "0.0.1"
-source = "git+https://github.com/FreeSynergy-Net/fs-modules-person?rev=4d56e954cfa8a2f3ffc9c6536425a17956ed9230#4d56e954cfa8a2f3ffc9c6536425a17956ed9230"
+source = "git+https://github.com/FreeSynergy-Net/fs-modules-person?rev=8b2b16273771839119bf1e070328fd099923929e#8b2b16273771839119bf1e070328fd099923929e"
 dependencies = [
  "async-trait",
  "fs-interfaces",
@@ -744,7 +764,7 @@ dependencies = [
 [[package]]
 name = "fs-person-service"
 version = "0.0.1"
-source = "git+https://github.com/FreeSynergy-Net/fs-modules-person?rev=4d56e954cfa8a2f3ffc9c6536425a17956ed9230#4d56e954cfa8a2f3ffc9c6536425a17956ed9230"
+source = "git+https://github.com/FreeSynergy-Net/fs-modules-person?rev=8b2b16273771839119bf1e070328fd099923929e#8b2b16273771839119bf1e070328fd099923929e"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -768,7 +788,7 @@ dependencies = [
 [[package]]
 name = "fs-rpc"
 version = "0.1.4"
-source = "git+https://github.com/FreeSynergy-Net/fs-rpc?rev=0120f9afadf5b74540e8df3f0dfdd1b2edb4e1d4#0120f9afadf5b74540e8df3f0dfdd1b2edb4e1d4"
+source = "git+https://github.com/FreeSynergy-Net/fs-rpc?rev=9cbce63c73045a2ea32b88038fd35732c4762624#9cbce63c73045a2ea32b88038fd35732c4762624"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -807,15 +827,15 @@ dependencies = [
 [[package]]
 name = "fs-trusted-path"
 version = "0.1.4"
-source = "git+https://github.com/FreeSynergy-Net/fs-rpc?rev=0120f9afadf5b74540e8df3f0dfdd1b2edb4e1d4#0120f9afadf5b74540e8df3f0dfdd1b2edb4e1d4"
+source = "git+https://github.com/FreeSynergy-Net/fs-rpc?rev=9cbce63c73045a2ea32b88038fd35732c4762624#9cbce63c73045a2ea32b88038fd35732c4762624"
 dependencies = [
  "windows-sys 0.61.2",
 ]
 
 [[package]]
 name = "fs-types"
-version = "0.0.5"
-source = "git+https://github.com/FreeSynergy-Net/fs-types?tag=v0.0.6#2f45110417cf42311d5dee72287b7644312d4bc4"
+version = "0.0.7"
+source = "git+https://github.com/FreeSynergy-Net/fs-types?rev=722d3ce0156711d40cb278f2e835e865d9448290#722d3ce0156711d40cb278f2e835e865d9448290"
 dependencies = [
  "capnp",
  "chrono",
@@ -824,6 +844,7 @@ dependencies = [
  "iri-string",
  "oxilangtag",
  "semver",
+ "strum 0.28.0",
  "unicode-normalization",
  "zeroize",
 ]
@@ -1043,6 +1064,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "hashify"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04a037b1848eada162d6534c206770180e6bfc0eaa97292250c3e7179d8b1f73"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.9",
 ]
 
 [[package]]
@@ -1366,9 +1398,9 @@ checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "jiff"
-version = "0.2.40"
+version = "0.2.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14ed8250fe4472173a765b89fea4b46f2c4aa12adc12a3e310f1dc6c108e041b"
+checksum = "175dc66334db3b9ab9985bf8b61cfed50dc16d20964bb47f9e479adcae984a7f"
 dependencies = [
  "jiff-core",
  "jiff-static",
@@ -1383,18 +1415,18 @@ dependencies = [
 
 [[package]]
 name = "jiff-core"
-version = "0.1.3"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ecfc96f3a325d3a9b0ee6db9a81a83b40b94e781021c044a0a7f4c4630a1e482"
+checksum = "e599b80292e597019b8b3e392de3f4bea2959ddfb8c7dff60e035e9e311a2c1b"
 dependencies = [
  "log",
 ]
 
 [[package]]
 name = "jiff-static"
-version = "0.2.40"
+version = "0.2.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9522de39a5298859d9e844b660eb7d5e6fd1b63b9953f51535408a62f2d31b3"
+checksum = "c7b1af7547d47354bc438d797e3854601bde8f8d185780c5ba4ab27afa54f1ba"
 dependencies = [
  "jiff-core",
  "proc-macro2",
@@ -1404,9 +1436,9 @@ dependencies = [
 
 [[package]]
 name = "jiff-tzdb"
-version = "0.1.9"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa8377070c6bae868759445e5a77f66d84f0b72f3a054bfb00e6d038b8282da7"
+checksum = "0980fca2cc272465bd60e82397607ba9f33add9e48defd77923301bbd03808f2"
 
 [[package]]
 name = "jiff-tzdb-platform"
@@ -1423,7 +1455,7 @@ version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5bdcd368dcd58a5efaac10c142fb8cddb4d2949af1297b624df3ff0db4cbff54"
 dependencies = [
- "hashify",
+ "hashify 0.2.9",
  "serde",
  "serde_json",
 ]
@@ -1540,21 +1572,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mail-builder"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ccbc27cb02a58a311a404769a22f5abf63fe3173b290d80be7c534f9c7023151"
-
-[[package]]
-name = "mail-parser"
-version = "0.11.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ec00bda90c6e645a54506c630c2820cd6b1890cfd2b0a169b50f74b2b8c7c86"
-dependencies = [
- "hashify",
-]
-
-[[package]]
 name = "matchers"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1616,6 +1633,12 @@ dependencies = [
  "wasi",
  "windows-sys 0.61.2",
 ]
+
+[[package]]
+name = "multiversion_no_op"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "743fb55ba31b18fb1ecef6bdc9aa2743314978ac084044301a7eee33fb99a20d"
 
 [[package]]
 name = "nom"
@@ -1734,24 +1757,6 @@ name = "pastey"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2ee67f1008b1ba2321834326597b8e186293b049a023cdef258527550b9935b4"
-
-[[package]]
-name = "phf"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "913273894cec178f401a31ec4b656318d95473527be05c0752cc41cdc32be8b7"
-dependencies = [
- "phf_shared",
-]
-
-[[package]]
-name = "phf_shared"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06005508882fb681fd97892ecff4b7fd0fee13ef1aa569f8695dae7ab9099981"
-dependencies = [
- "siphasher",
-]
 
 [[package]]
 name = "pin-project-lite"
@@ -2296,7 +2301,16 @@ version = "0.26.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8fec0f0aef304996cf250b31b5a10dee7980c85da9d759361292b8bca5a18f06"
 dependencies = [
- "strum_macros",
+ "strum_macros 0.26.4",
+]
+
+[[package]]
+name = "strum"
+version = "0.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9628de9b8791db39ceda2b119bbe13134770b56c138ec1d3af810d045c04f9bd"
+dependencies = [
+ "strum_macros 0.28.0",
 ]
 
 [[package]]
@@ -2309,6 +2323,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "rustversion",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "strum_macros"
+version = "0.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab85eea0270ee17587ed4156089e10b9e6880ee688791d45a905f5b1ca36f664"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
  "syn 2.0.119",
 ]
 
@@ -2641,8 +2667,8 @@ dependencies = [
  "simdutf8",
  "simsimd",
  "smallvec",
- "strum",
- "strum_macros",
+ "strum 0.26.3",
+ "strum_macros 0.26.4",
  "tempfile",
  "thiserror",
  "tracing",
@@ -2687,8 +2713,8 @@ dependencies = [
  "bitflags",
  "memchr",
  "miette",
- "strum",
- "strum_macros",
+ "strum 0.26.3",
+ "strum_macros 0.26.4",
  "thiserror",
  "turso_macros",
 ]
@@ -2844,9 +2870,9 @@ checksum = "3a3b425286980a367278453f3b6d28cdcb134b574e5a35824a6ff5eebad50bb6"
 
 [[package]]
 name = "uuid"
-version = "1.29.1"
+version = "1.29.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a06f08a856b009bc7bbaf7d3e79808595d032dd19074c0c2ef26e49e03e6bdc"
+checksum = "3c14b15dffa2f4bd712103e857140aa04a4f2ff6e955c77d7eb8e53ee02a3b64"
 dependencies = [
  "getrandom 0.4.3",
  "js-sys",
