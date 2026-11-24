@@ -16,8 +16,8 @@ fn the_form_names_at_most_four_facts_and_the_capabilities_are_the_contract_ids()
         serde_json::from_str(include_str!("../../../catalog/forms.json")).unwrap();
     // cards-in-columns@1.1 allows facts 0..4 (fs-interfaces schema/forms.txt)
     assert!(forms[0]["map"]["facts"].as_array().unwrap().len() <= 4);
-    // the version the module keeps decides what a command writes (fs-forms-run `definition`): 1.2 has `writes` of move (after, before), `order` (read only), create, remove
-    assert_eq!(forms[0]["version"], "1.2");
+    // the version the module keeps decides what a command writes (fs-forms-run `definition`): 1.2 and 1.3 have `writes` of move (after, before), `order` (read only), create, remove
+    assert_eq!(forms[0]["version"], "1.3");
     // the host reads `x.y` from the file until it takes `x.y.z`; the service names the same form as `x.y.z`
     assert_eq!(
         format!("{}.0", forms[0]["version"].as_str().unwrap()),

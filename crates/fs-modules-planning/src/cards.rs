@@ -13,6 +13,8 @@ pub(crate) struct Card {
     pub(crate) board: String,
     pub(crate) column: String,
     pub(crate) label: String,
+    /// The WIP limit of the column (`column-limit`); the component counts, the module only reports it.
+    pub(crate) limit: Option<u32>,
     pub(crate) uid: String,
     pub(crate) at: usize,
 }
@@ -33,10 +35,12 @@ impl FormSourceImpl {
             for column in layout.columns {
                 let (board, id) = (&entry.board.name, &column.column.id);
                 let label = &column.column.name;
+                let limit = column.column.wip_limit;
                 out.extend(column.cards.into_iter().enumerate().map(|(at, uid)| Card {
                     board: board.clone(),
                     column: id.clone(),
                     label: label.clone(),
+                    limit,
                     uid,
                     at,
                 }));
@@ -52,6 +56,7 @@ impl FormSourceImpl {
             board,
             column,
             label,
+            limit,
             uid,
             at,
         }: &Card,
@@ -72,12 +77,13 @@ impl FormSourceImpl {
             row.push(("due", due));
         }
         row.push(("column-label", label.clone()));
+        if let Some(limit) = limit {
+            row.push(("column-limit", limit.to_string()));
+        }
         if let Some(percent) = task.percent_complete {
             row.push(("percent", percent.to_string()));
         }
-        if let Some(progress) = &task.progress {
-            row.push(("progress", progress.clone()));
-        }
+        row.extend(crate::facts::channels(task));
         row.extend(crate::facts::of(task));
         Ok(Some(row))
     }

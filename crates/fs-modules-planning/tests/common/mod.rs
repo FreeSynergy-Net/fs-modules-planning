@@ -163,3 +163,48 @@ pub async fn titles(source: &form_source::Client) -> Vec<String> {
         .map(|r| format!("{}/{}", field(r, "column"), field(r, "title")))
         .collect()
 }
+
+/// Seed the own channels of `cards-in-columns@1.3.0` on the board `work`: a limit of 3 on its column `todo`, and one task
+/// `full` with `priority` 1, `color` `#ff8800`, `estimated` `PT1H30M` and a `description`.
+pub async fn seed_channels(socket: &std::path::Path) {
+    use fs_interfaces::tasks_capnp::tasks;
+    use fs_tasks_core::Task;
+    let tasks = fs_rpc::connect::<tasks::Client>(socket).await.unwrap();
+    let boards = tasks.client.boards_request().send().pipeline.get_boards();
+    let list = boards.list_request().send().promise.await.unwrap();
+    let list = list.get().unwrap().get_boards().unwrap();
+    let board = list.get(0);
+    let id = board.get_envelope().unwrap().get_id().unwrap();
+    let mut edit = boards.edit_columns_request();
+    {
+        let mut p = edit.get();
+        let mut wire = p.reborrow().init_id();
+        wire.set_hi(id.get_hi());
+        wire.set_lo(id.get_lo());
+        p.set_revision(board.get_revision());
+        let old = board.get_columns().unwrap();
+        let mut columns = p.init_columns(old.len());
+        for (i, c) in old.iter().enumerate() {
+            let mut out = columns.reborrow().get(u32::try_from(i).unwrap());
+            let id = c.get_id().unwrap().to_str().unwrap();
+            out.set_id(id);
+            out.set_name(c.get_name().unwrap().to_str().unwrap());
+            out.set_wip_limit(if id == "todo" { 3 } else { 0 });
+            let mut progress = out.init_progress(c.get_progress().unwrap().len());
+            for (j, w) in c.get_progress().unwrap().iter().enumerate() {
+                progress.set(u32::try_from(j).unwrap(), w.unwrap().to_str().unwrap());
+            }
+        }
+    }
+    edit.send().promise.await.unwrap();
+    let mut full = Task::new("full");
+    full.priority = Some(1);
+    full.description = Some("why".into());
+    full.estimated_duration = Some("PT1H30M".into());
+    full.set_vendor("color", serde_json::json!("#ff8800"));
+    let items = tasks.client.items_request().send().pipeline.get_items();
+    let mut add = items.create_request();
+    add.get()
+        .set_jscalendar(full.to_value().to_string().as_str());
+    add.send().promise.await.unwrap();
+}

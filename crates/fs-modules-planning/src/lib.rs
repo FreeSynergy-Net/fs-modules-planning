@@ -30,6 +30,8 @@ mod place;
 mod place_tests;
 mod root;
 mod scope;
+#[cfg(test)]
+mod scope_tests;
 mod serve;
 mod wire;
 mod write;

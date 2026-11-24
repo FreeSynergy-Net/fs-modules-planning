@@ -7,15 +7,16 @@
 
 mod common;
 
-use common::{board_with, call, field, page, serve};
+use common::{board_with, call, field, page, seed_channels, serve};
 use fs_interfaces::formsource_capnp::form_source;
 use fs_module::conformance::run_conformance;
 use fs_module::{
-    CommandKind, DeclaredCommand, DeclaredForm, FormSourceFixture, Ordered, Param, Sample, Verify,
+    CommandKind, DeclaredCommand, DeclaredForm, FormSourceFixture, Ordered, Param, Sample,
+    ValueField, ValueKind, Verify,
 };
 use tokio::task::LocalSet;
 
-const FORM: &str = "cards-in-columns@1.2.0";
+const FORM: &str = "cards-in-columns@1.3.0";
 
 struct Planning {
     client: form_source::Client,
@@ -147,6 +148,23 @@ impl FormSourceFixture for Planning {
             ],
         })
     }
+
+    fn value_fields(&self) -> Vec<ValueField> {
+        [
+            ("description", ValueKind::Description),
+            ("color", ValueKind::Color),
+            ("estimated", ValueKind::Estimated),
+            ("column-limit", ValueKind::ColumnLimit),
+            ("priority", ValueKind::Priority),
+        ]
+        .into_iter()
+        .map(|(path, kind)| ValueField {
+            form: FORM.into(),
+            path: path.into(),
+            kind,
+        })
+        .collect()
+    }
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -162,6 +180,7 @@ async fn the_suite_of_module_v1_passes_on_the_planning_service() {
                 .await
                 .unwrap();
             let uids = board_with(&socket, &source.client, &["a", "b", "c"]).await;
+            seed_channels(&socket).await;
             let fixture = Planning {
                 client: source.client.clone(),
                 other: other.client.clone(),
@@ -173,8 +192,7 @@ async fn the_suite_of_module_v1_passes_on_the_planning_service() {
             assert!(
                 report.skipped.iter().all(|s| s.starts_with("11 forbidden")
                     || s.starts_with("L2-9 gone")
-                    || s.starts_with("20 blob")
-                    || s.starts_with("22 standard values")),
+                    || s.starts_with("20 blob")),
                 "{:#?}",
                 report.skipped
             );
