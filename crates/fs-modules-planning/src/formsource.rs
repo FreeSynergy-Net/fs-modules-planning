@@ -48,6 +48,7 @@ type Reply = Result<(), capnp::Error>;
 struct Card {
     board: String,
     column: String,
+    label: String,
     uid: String,
     at: usize,
 }
@@ -74,9 +75,11 @@ impl FormSourceImpl {
             let layout = self.repo.board_layout(entry.id).await.map_err(rpc_error)?;
             for column in layout.columns {
                 let (board, id) = (&entry.board.name, &column.column.id);
+                let label = &column.column.name;
                 out.extend(column.cards.into_iter().enumerate().map(|(at, uid)| Card {
                     board: board.clone(),
                     column: id.clone(),
+                    label: label.clone(),
                     uid,
                     at,
                 }));
@@ -91,6 +94,7 @@ impl FormSourceImpl {
         Card {
             board,
             column,
+            label,
             uid,
             at,
         }: &Card,
@@ -106,8 +110,13 @@ impl FormSourceImpl {
             ("title", task.title.clone().unwrap_or_default()),
             ("index", at.to_string()),
         ];
-        if let Some(due) = &task.due {
-            row.push(("due", due.clone()));
+        // RFC 3339 date-time with offset (form art `time`), not the naive JSCalendar LocalDateTime
+        if let Some(due) = self.repo.due_instant(task).map_err(rpc_error)? {
+            row.push(("due", due));
+        }
+        row.push(("column-label", label.clone()));
+        if let Some(percent) = task.percent_complete {
+            row.push(("percent", percent.to_string()));
         }
         if let Some(progress) = &task.progress {
             row.push(("progress", progress.clone()));

@@ -75,6 +75,7 @@ async fn a_card_is_moved_through_invoke_with_text_values_only() {
             for name in forms[0]["fields"].as_object().unwrap().keys().filter(|n| {
                 ![
                     "due",
+                    "percent",
                     "priority",
                     "participants",
                     "keywords",

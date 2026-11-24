@@ -167,12 +167,35 @@ pub(crate) async fn create_task(
     if title.is_empty() {
         return Err(boxed(BAD_ARGS, "`title` is empty", 400));
     }
-    let (board, column) = (take(&mut got, "board")?, take(&mut got, "column")?);
+    let column = take(&mut got, "column")?;
+    let board = take_neighbour(&mut got, "board");
     let (after, before) = (
         take_neighbour(&mut got, "after"),
         take_neighbour(&mut got, "before"),
     );
     let boards = repo.boards().await.map_err(to_problem)?;
+    // `lane` is optional on `create` (forms.txt): without it exactly ONE board is meant; none or several is refused with the reason
+    let board = match board {
+        Some(name) => name,
+        None => match boards.as_slice() {
+            [only] => only.board.name.clone(),
+            [] => {
+                return Err(boxed(
+                    BAD_ARGS,
+                    "`board` is missing and there is no board to put the card on",
+                    400,
+                ));
+            }
+            _ => {
+                let names: Vec<&str> = boards.iter().map(|b| b.board.name.as_str()).collect();
+                let why = format!(
+                    "`board` is missing and there are several boards ({}): name one",
+                    names.join(", ")
+                );
+                return Err(boxed(BAD_ARGS, why, 400));
+            }
+        },
+    };
     let entry = board_named(&boards, &board)?;
     if !entry.board.columns.iter().any(|c| c.id == column) {
         return Err(to_problem(Error::Rejected(format!("no column {column:?}"))));

@@ -58,3 +58,14 @@ impl TaskRepo {
         })
     }
 }
+
+impl TaskRepo {
+    /// The due time of a task as an instant, RFC 3339 `date-time` in UTC (`2026-11-26T11:00:00Z`), or `None` without a due. The stored
+    /// JSCalendar `due` is a `LocalDateTime` (RFC 8984, no offset); the task's `timeZone`, else the floating zone, gives the offset.
+    ///
+    /// # Errors
+    /// A stored value that is no time or zone (the repo validates on write, so this is a damaged task).
+    pub fn due_instant(&self, t: &Task) -> Result<Option<String>> {
+        Ok(self.time_index(t)?.due.map(fmt_utc))
+    }
+}

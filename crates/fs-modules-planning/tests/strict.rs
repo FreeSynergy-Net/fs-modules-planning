@@ -31,8 +31,11 @@ fn the_form_names_at_most_four_facts_and_the_capabilities_are_the_contract_ids()
     assert_eq!(forms[0]["map"]["after"], "after");
     assert_eq!(forms[0]["map"]["before"], "before");
     assert_eq!(forms[0]["map"]["lane"], "board");
-    // `progress` is a number channel in 1.1, the module sends text: it is not bound
-    assert!(forms[0]["map"].get("progress").is_none());
+    // `progress` is a number channel: it takes the percent (a number), never the status word; the head shows the column name beside its id
+    assert_eq!(forms[0]["map"]["progress"], "percent");
+    assert_eq!(forms[0]["fields"]["percent"], "number");
+    assert_eq!(forms[0]["map"]["column-label"], "column-label");
+    assert_eq!(forms[0]["fields"]["due"], "date-time");
     // every command channel is a key of the command file, and every argument the gesture writes (`after`, `before`, `lane`, `column`, `title`)
     // is a param of that command
     let file: serde_json::Value =
