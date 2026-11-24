@@ -4,5 +4,6 @@
 
 mod check;
 mod color;
+mod css_names;
 
 pub use check::{PROGRESS, issues, validate};
