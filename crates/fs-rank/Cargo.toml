@@ -1,0 +1,13 @@
+[package]
+name = "fs-rank"
+description = "Hand order of items as a fractional rank: a thin adapter around fracindex (key before, after or between two neighbours; text form that sorts like the key)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+# Exact pin (ADR / SCHNITT-move-position section 5). jitter: two writers with the same neighbours get different keys.
+fracindex = { version = "=0.4.1", features = ["jitter"] }
+thiserror = "2"

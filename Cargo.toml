@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/fs-tasks-core", "crates/fs-modules-planning", "crates/fs-modules-planning-client"]
+members = ["crates/fs-rank", "crates/fs-tasks-core", "crates/fs-modules-planning", "crates/fs-modules-planning-client"]
 # fs-tasks-server: superseded by fs-modules-planning (fs-rpc instead of fs_interfaces::rpc, which fs-interfaces dropped after 0.0.28); needs the old pins.
 # fs-tasks-testdata, fs-tasks-local: not liftable yet, fs-people-directory still hangs on fs-types 0.0.22
 # (card "lift fs-people to fs-types v0.0.4"); the files stay.

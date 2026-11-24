@@ -623,6 +623,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c66915cc5391097de7a2b0b972e8505aa33c0df401fd3a6811dbdb32881ba48"
 
 [[package]]
+name = "fracindex"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c99752c09ac7ea07d49db61bfe85e35ff5415c679b38bc6aeef8d5252ad0954c"
+dependencies = [
+ "rand 0.10.3",
+ "smallvec",
+]
+
+[[package]]
 name = "fs-interfaces"
 version = "0.0.34"
 source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?tag=v0.0.34#22abe015d75578e55e9e86880925490da15c1b35"
@@ -699,6 +709,14 @@ dependencies = [
  "turso",
  "unicode-normalization",
  "uuid",
+]
+
+[[package]]
+name = "fs-rank"
+version = "0.0.3"
+dependencies = [
+ "fracindex",
+ "thiserror",
 ]
 
 [[package]]
