@@ -19,7 +19,7 @@ mod model;
 mod planning;
 mod wire;
 
-pub use catalog::{Catalog, Command, Param};
+pub use catalog::{Catalog, Command, Param, Requirement};
 pub use ensure::{
     SERVICE_PROGRAM, SOCKET_PROGRAM, default_socket, ensure_service, ensure_service_found,
     find_service_program,

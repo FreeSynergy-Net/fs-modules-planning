@@ -25,6 +25,7 @@ mod items;
 mod level2;
 mod level2_calls;
 mod level2_watch;
+mod person_owner;
 mod place;
 #[cfg(test)]
 mod place_tests;
@@ -39,5 +40,6 @@ mod write;
 mod write_tests;
 
 pub use formsource::{FORM_CARDS, FORM_NAME, LEVEL, PROVIDER};
+pub use person_owner::person_owner;
 pub use root::{CAPABILITIES, CONTRACT_VERSION, Planning, actor_of};
 pub use serve::{PROGRAM, serve_command, serve_with};

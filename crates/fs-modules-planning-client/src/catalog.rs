@@ -28,10 +28,21 @@ pub struct Command {
     pub params: Vec<Param>,
 }
 
-/// The catalog: capability keys to commands.
+/// A module this module asks directly through its contract (ADR 0104 E9). `required`: without it the function stops with a visible
+/// reason (the field names are a draft, ADR 0104 Open 7).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Requirement {
+    /// The module (`person`).
+    pub module: String,
+    /// The function stops without it; otherwise the blueprint says what the fallback is.
+    pub required: bool,
+}
+
+/// The catalog: capability keys to commands, and the modules it requires.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Catalog {
     commands: BTreeMap<String, Command>,
+    requires: Vec<Requirement>,
 }
 
 impl Catalog {
@@ -78,13 +89,22 @@ impl Catalog {
                 return Err(format!("command {key:?} twice"));
             }
         }
-        Ok(Self { commands })
+        Ok(Self {
+            commands,
+            requires: requires_of(&value)?,
+        })
     }
 
     /// The command with this capability key, if the catalog has it.
     #[must_use]
     pub fn command(&self, key: &str) -> Option<&Command> {
         self.commands.get(key)
+    }
+
+    /// The modules this module asks through their contracts (`person`: the owner of the store).
+    #[must_use]
+    pub fn requires(&self) -> &[Requirement] {
+        &self.requires
     }
 
     /// The capability keys of all commands.
@@ -123,4 +143,28 @@ fn params_of(entry: &serde_json::Value, key: &str) -> Result<Vec<Param>, String>
         });
     }
     Ok(out)
+}
+
+fn requires_of(value: &serde_json::Value) -> Result<Vec<Requirement>, String> {
+    let Some(list) = value.get("requires") else {
+        return Ok(Vec::new());
+    };
+    let list = list.as_array().ok_or("`requires` is no list")?;
+    list.iter()
+        .map(|entry| {
+            let module = entry
+                .get("module")
+                .and_then(serde_json::Value::as_str)
+                .filter(|s| !s.is_empty())
+                .ok_or("a `requires` entry without `module`")?;
+            let required = match entry.get("required") {
+                None => true,
+                Some(v) => v.as_bool().ok_or("`required` is no boolean")?,
+            };
+            Ok(Requirement {
+                module: module.to_owned(),
+                required,
+            })
+        })
+        .collect()
 }

@@ -138,3 +138,30 @@ fn the_file_and_the_service_use_the_same_keys() {
         );
     }
 }
+
+/// ADR 0104 E9: the planning module asks the module `person` for the owner of its store, and says so in its catalog.
+#[test]
+fn the_shipped_catalog_requires_the_module_person() {
+    let requires = Catalog::bundled().requires().to_vec();
+    assert_eq!(requires.len(), 1, "{requires:?}");
+    assert_eq!(
+        (requires[0].module.as_str(), requires[0].required),
+        ("person", true)
+    );
+}
+
+#[test]
+fn a_broken_requires_is_refused_with_its_reason() {
+    for (text, why) in [
+        (r#"{"commands":[],"requires":"person"}"#, "no list"),
+        (r#"{"commands":[],"requires":[{}]}"#, "without `module`"),
+        (
+            r#"{"commands":[],"requires":[{"module":"person","required":"yes"}]}"#,
+            "no boolean",
+        ),
+    ] {
+        let err = Catalog::parse(text).unwrap_err();
+        assert!(err.contains(why), "{err}");
+    }
+    assert_eq!(Catalog::parse(r#"{"commands":[]}"#).unwrap().requires(), []);
+}
