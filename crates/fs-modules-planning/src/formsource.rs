@@ -1,4 +1,4 @@
-//! `FormSource` of the planning module: the read side for drawing by a form (`cards-in-columns@1.1`) and the writing of the commands
+//! `FormSource` of the planning module: the read side for drawing by a form (`cards-in-columns@1.2`, and 1.1 and 1.0 for reading) and the writing of the commands
 //! of `catalog/commands.json` (`card.move`, `task.create`, `task.delete`, see `write.rs`), next to the contract `tasks.capnp` on the
 //! same socket.
 //!
@@ -9,7 +9,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use fs_interfaces::common_capnp::cursor;
-use fs_interfaces::forms::FORM_SOURCE_LEVEL;
+use fs_interfaces::forms::{FORM_SOURCE_LEVEL, parse_key};
 use fs_interfaces::formsource_capnp::{form_source, record_view, value};
 use fs_tasks_core::{BoardEntry, Boards, TaskItems, TaskRepo};
 
@@ -23,12 +23,15 @@ use crate::write::{
 /// Who the service says it is in `hello`.
 pub const PROVIDER: &str = "planning";
 
-/// The form this module draws and writes, as `name@Major.Minor` (a key of `schema/forms.txt`): `cards-in-columns@1.1` has the channels
-/// `order`, `create` and `remove` and the `writes` of `move`; `catalog/forms.json` declares this version.
-pub const FORM_CARDS: &str = "cards-in-columns@1.1";
+/// The form this module draws and writes, as `name@x.y.z` (a key of `schema/forms.txt`): `cards-in-columns@1.2.0` has the channels `order`
+/// (read only: the sequence), `after`, `before`, `create` and `remove` and the `writes` of `move`. `catalog/forms.json` declares this version
+/// as `1.2` (the host reads `x.y` until it takes `x.y.z`).
+pub const FORM_CARDS: &str = "cards-in-columns@1.2.0";
 
-/// The older minor of the same form (a subset: the same cards, no place and no create): still read, so a host that asks for `1.0` is served.
-pub const FORM_CARDS_1_0: &str = "cards-in-columns@1.0";
+/// The name of the form and the older minors of it that are still read (`1.1`, `1.0`: the same cards, a subset of the channels); both ways
+/// of writing the key (`x.y`, `x.y.z`) are taken, the patch does not count.
+pub const FORM_NAME: &str = "cards-in-columns";
+const MINORS_SERVED: [u64; 3] = [0, 1, 2];
 
 /// The most records of one page when the caller names no limit (or a bigger one).
 pub const PAGE_MAX: u32 = 500;
@@ -41,10 +44,25 @@ pub(crate) struct FormSourceImpl {
 
 type Reply = Result<(), capnp::Error>;
 
+/// One card of the layout: its board, column, uid and its position in the column (the read-only `order`).
+struct Card {
+    board: String,
+    column: String,
+    uid: String,
+    at: usize,
+}
+
+/// Whether `form` is a key of the form this module serves: the name, major 1 and a minor of `MINORS_SERVED` (`x.y` and `x.y.z`).
+fn serves(form: &str) -> bool {
+    parse_key(form).is_some_and(|(name, v)| {
+        name == FORM_NAME && v.major == 1 && MINORS_SERVED.contains(&v.minor)
+    })
+}
+
 impl FormSourceImpl {
     /// The cards of the boards in `scope` (empty = every board), in the order of the layout: column by column, as `(board name,
     /// column id, uid)`. Only the layout is read here; the tasks of one page are read by [`Self::row`].
-    async fn cards(&self, scope: &str) -> capnp::Result<Vec<(String, String, String)>> {
+    async fn cards(&self, scope: &str) -> capnp::Result<Vec<Card>> {
         let boards = self.repo.boards().await.map_err(rpc_error)?;
         let chosen: Vec<&BoardEntry> = if scope.is_empty() {
             boards.iter().collect()
@@ -56,12 +74,12 @@ impl FormSourceImpl {
             let layout = self.repo.board_layout(entry.id).await.map_err(rpc_error)?;
             for column in layout.columns {
                 let (board, id) = (&entry.board.name, &column.column.id);
-                out.extend(
-                    column
-                        .cards
-                        .into_iter()
-                        .map(|u| (board.clone(), id.clone(), u)),
-                );
+                out.extend(column.cards.into_iter().enumerate().map(|(at, uid)| Card {
+                    board: board.clone(),
+                    column: id.clone(),
+                    uid,
+                    at,
+                }));
             }
         }
         Ok(out)
@@ -70,7 +88,12 @@ impl FormSourceImpl {
     /// The record of one card by the field names of `catalog/forms.json`; `None` when the task is gone in the meantime.
     async fn row(
         &self,
-        (board, column, uid): &(String, String, String),
+        Card {
+            board,
+            column,
+            uid,
+            at,
+        }: &Card,
     ) -> capnp::Result<Option<Vec<(&'static str, String)>>> {
         let Some(task) = self.repo.get_by_uid(uid).await.map_err(rpc_error)? else {
             return Ok(None);
@@ -81,6 +104,7 @@ impl FormSourceImpl {
             ("board", board.clone()),
             ("column", column.clone()),
             ("title", task.title.clone().unwrap_or_default()),
+            ("index", at.to_string()),
         ];
         if let Some(due) = &task.due {
             row.push(("due", due.clone()));
@@ -112,9 +136,8 @@ impl form_source::Server for FormSourceImpl {
     ) -> Reply {
         let p = params.get()?;
         let form = p.get_form()?.to_str()?;
-        if form != FORM_CARDS && form != FORM_CARDS_1_0 {
-            let why =
-                format!("this module draws {FORM_CARDS} (and {FORM_CARDS_1_0} as its subset)");
+        if !serves(form) {
+            let why = format!("this module draws {FORM_CARDS} (and 1.1, 1.0 for reading)");
             return Err(problem(UNKNOWN_FORM, why, 404).into_error());
         }
         let scope = p.get_scope()?.to_string()?;
@@ -165,7 +188,7 @@ impl form_source::Server for FormSourceImpl {
         _: form_source::BlobResults,
     ) -> Reply {
         Err(problem(
-            "https://freesynergy.net/problems/unsupported",
+            "form-source-unsupported",
             "this module has no image or file field",
             501,
         )

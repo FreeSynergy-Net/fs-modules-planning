@@ -163,9 +163,8 @@ impl TaskRepo {
         };
         // the placed cards are on the board whatever their labels say
         let placed: Vec<String> = board
-            .order
-            .values()
-            .flatten()
+            .place
+            .keys()
             .filter(|u| !tasks.iter().any(|t| &t.task.uid == *u))
             .cloned()
             .collect();

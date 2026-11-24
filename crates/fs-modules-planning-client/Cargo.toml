@@ -12,8 +12,8 @@ rust-version.workspace = true
 name = "fs_modules_planning_client"
 
 [dependencies]
-fs-rpc = { git = "https://github.com/FreeSynergy-Net/fs-rpc", tag = "v0.0.8" }
-fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", tag = "v0.0.34" }
+fs-rpc = { git = "https://github.com/FreeSynergy-Net/fs-rpc", rev = "7f3601a2404f1e2d20a7eef118bfddc90f9507a5" }
+fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", tag = "v0.1.0", version = "0.1.0" }
 fs-jscalendar = { git = "https://github.com/FreeSynergy-Net/fs-jscalendar", tag = "v0.0.7" }
 capnp = "0.27"
 capnp-rpc = "0.27"

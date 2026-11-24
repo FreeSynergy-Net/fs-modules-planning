@@ -634,8 +634,8 @@ dependencies = [
 
 [[package]]
 name = "fs-interfaces"
-version = "0.0.34"
-source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?tag=v0.0.34#22abe015d75578e55e9e86880925490da15c1b35"
+version = "0.1.0"
+source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?tag=v0.1.0#030a5a821c34e85f6da5f60bc9b69b9ce0544482"
 dependencies = [
  "capnp",
  "fs-types",
@@ -659,12 +659,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "fs-module"
+version = "0.1.0"
+source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?tag=v0.1.0#030a5a821c34e85f6da5f60bc9b69b9ce0544482"
+dependencies = [
+ "capnp",
+ "capnp-rpc",
+ "fs-interfaces",
+]
+
+[[package]]
 name = "fs-modules-planning"
 version = "0.0.3"
 dependencies = [
  "capnp",
  "capnp-rpc",
  "fs-interfaces",
+ "fs-module",
  "fs-modules-planning-client",
  "fs-objects",
  "fs-rpc",
@@ -721,8 +732,8 @@ dependencies = [
 
 [[package]]
 name = "fs-rpc"
-version = "0.0.8"
-source = "git+https://github.com/FreeSynergy-Net/fs-rpc?tag=v0.0.8#36390975a085f2372ea03a6101852afbfbcb6d55"
+version = "0.1.2"
+source = "git+https://github.com/FreeSynergy-Net/fs-rpc?rev=7f3601a2404f1e2d20a7eef118bfddc90f9507a5#7f3601a2404f1e2d20a7eef118bfddc90f9507a5"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -749,6 +760,7 @@ dependencies = [
  "fs-interfaces",
  "fs-jscalendar",
  "fs-objects",
+ "fs-rank",
  "serde",
  "serde_json",
  "tempfile",
@@ -758,8 +770,8 @@ dependencies = [
 
 [[package]]
 name = "fs-trusted-path"
-version = "0.0.8"
-source = "git+https://github.com/FreeSynergy-Net/fs-rpc?tag=v0.0.8#36390975a085f2372ea03a6101852afbfbcb6d55"
+version = "0.1.2"
+source = "git+https://github.com/FreeSynergy-Net/fs-rpc?rev=7f3601a2404f1e2d20a7eef118bfddc90f9507a5#7f3601a2404f1e2d20a7eef118bfddc90f9507a5"
 dependencies = [
  "windows-sys 0.61.2",
 ]

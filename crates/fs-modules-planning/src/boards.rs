@@ -64,8 +64,9 @@ fn write_board(mut out: board::Builder<'_>, entry: &BoardEntry) -> capnp::Result
     for (i, c) in (0u32..).zip(&entry.board.columns) {
         write_column(columns.reborrow().get(i), c);
     }
-    let mut order = out.init_order(count(entry.board.order.len())?);
-    for (i, (column, cards)) in (0u32..).zip(&entry.board.order) {
+    let by_column = entry.board.order();
+    let mut order = out.init_order(count(by_column.len())?);
+    for (i, (column, cards)) in (0u32..).zip(&by_column) {
         let mut p = order.reborrow().get(i);
         p.set_column(column.as_str());
         write_cards(p.init_cards(count(cards.len())?), cards);
@@ -161,11 +162,13 @@ impl boards::Server for BoardsImpl {
             let Some(current) = repo.board_get(id).await? else {
                 return Err(fs_tasks_core::Error::Rejected("no such board".into()));
             };
-            let board = Board {
+            let mut board = Board {
                 columns,
-                order,
                 ..current.board
             };
+            board
+                .set_order(&order)
+                .map_err(fs_tasks_core::Error::Rejected)?;
             repo.board_edit(id, revision, board).await
         })
         .await?

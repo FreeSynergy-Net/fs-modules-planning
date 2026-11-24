@@ -24,7 +24,8 @@ fn the_shipped_catalog_names_the_commands_by_contract_key_with_their_arguments()
         [
             ("board", "text", true),
             ("column", "text", true),
-            ("index", "number", false)
+            ("after", "reference", false),
+            ("before", "reference", false)
         ]
     );
     assert_eq!(catalog.command("task.create").unwrap().call, "Items.create");
@@ -34,7 +35,8 @@ fn the_shipped_catalog_names_the_commands_by_contract_key_with_their_arguments()
             ("title", "text", true),
             ("board", "text", true),
             ("column", "text", true),
-            ("index", "number", false)
+            ("after", "reference", false),
+            ("before", "reference", false)
         ]
     );
     assert_eq!(catalog.command("task.delete").unwrap().call, "Items.delete");
@@ -88,9 +90,9 @@ fn the_file_keeps_the_duties_of_the_host() {
     assert_eq!(doc["module"], module);
     assert_eq!(doc["contract"], doc["module"]);
     assert_eq!(doc["scope"], "own-contract");
-    // three parts (`semver`, version rule V); the set changed with the move to keys, so 0.0.2
+    // three parts (`semver`, version rule V); the params changed with the move by neighbours (after, before instead of index), so 0.0.3
     let version = semver::Version::parse(doc["version"].as_str().unwrap()).unwrap();
-    assert_eq!(version, semver::Version::new(0, 0, 2));
+    assert_eq!(version, semver::Version::new(0, 0, 3));
     let word = |s: &str| {
         !s.is_empty()
             && s.bytes()

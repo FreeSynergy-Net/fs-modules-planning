@@ -20,9 +20,9 @@ path = "src/main.rs"
 fs-tasks-core = { path = "../fs-tasks-core" }
 # The one place of the module name (socket, catalog, data folder): the client says it, the service uses it.
 fs-modules-planning-client = { path = "../fs-modules-planning-client" }
-# One source per library: the same tags as the core and fs-rpc.
-fs-rpc = { git = "https://github.com/FreeSynergy-Net/fs-rpc", tag = "v0.0.8" }
-fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", tag = "v0.0.34" }
+# One source per library: the same tags as the core and fs-rpc. fs-rpc: interim pin on the branch unreviewed/repin-interfaces-0-1-0 of fs-rpc (fs-interfaces v0.1.0; no fs-rpc tag has it yet), replaced by the tag with the bundle.
+fs-rpc = { git = "https://github.com/FreeSynergy-Net/fs-rpc", rev = "7f3601a2404f1e2d20a7eef118bfddc90f9507a5" }
+fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", tag = "v0.1.0", version = "0.1.0" }
 fs-objects = { git = "https://github.com/FreeSynergy-Net/fs-objects", tag = "v0.0.10" }
 capnp = "0.27"
 capnp-rpc = "0.27"
@@ -30,5 +30,7 @@ serde_json = "1"
 tokio = { version = "1", features = ["rt", "net", "sync", "time"] }
 
 [dev-dependencies]
+# The conformance suite of the contract `module_v1` (fixture trait, rules), the same fs-interfaces source as above.
+fs-module = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", tag = "v0.1.0", version = "0.1.0" }
 tempfile = "3"
 tokio = { version = "1", features = ["rt", "net", "sync", "time", "macros"] }

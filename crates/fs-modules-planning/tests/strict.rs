@@ -16,18 +16,24 @@ fn the_form_names_at_most_four_facts_and_the_capabilities_are_the_contract_ids()
         serde_json::from_str(include_str!("../../../catalog/forms.json")).unwrap();
     // cards-in-columns@1.1 allows facts 0..4 (fs-interfaces schema/forms.txt)
     assert!(forms[0]["map"]["facts"].as_array().unwrap().len() <= 4);
-    // the version the module keeps decides what a command writes (fs-forms-run `definition`): 1.1 has `writes`, `order`, create, remove
-    assert_eq!(forms[0]["version"], "1.1");
-    assert_eq!(forms[0]["version"], FORM_CARDS.rsplit('@').next().unwrap());
-    // the channel of the form names the key of the contract, not a name of the host; the place is written as `index`
+    // the version the module keeps decides what a command writes (fs-forms-run `definition`): 1.2 has `writes` of move (after, before), `order` (read only), create, remove
+    assert_eq!(forms[0]["version"], "1.2");
+    // the host reads `x.y` from the file until it takes `x.y.z`; the service names the same form as `x.y.z`
+    assert_eq!(
+        format!("{}.0", forms[0]["version"].as_str().unwrap()),
+        FORM_CARDS.rsplit('@').next().unwrap()
+    );
+    // the channel of the form names the key of the contract, not a name of the host; the place is written by the neighbours, never as a number
     assert_eq!(forms[0]["map"]["move"], "card.move");
     assert_eq!(forms[0]["map"]["create"], "task.create");
     assert_eq!(forms[0]["map"]["remove"], "task.delete");
     assert_eq!(forms[0]["map"]["order"], "index");
+    assert_eq!(forms[0]["map"]["after"], "after");
+    assert_eq!(forms[0]["map"]["before"], "before");
     assert_eq!(forms[0]["map"]["lane"], "board");
     // `progress` is a number channel in 1.1, the module sends text: it is not bound
     assert!(forms[0]["map"].get("progress").is_none());
-    // every command channel is a key of the command file, and every argument the gesture writes (`order`, `lane`, `column`, `title`)
+    // every command channel is a key of the command file, and every argument the gesture writes (`after`, `before`, `lane`, `column`, `title`)
     // is a param of that command
     let file: serde_json::Value =
         serde_json::from_str(include_str!("../../../catalog/commands.json")).unwrap();
@@ -46,8 +52,11 @@ fn the_form_names_at_most_four_facts_and_the_capabilities_are_the_contract_ids()
             .collect()
     };
     for (channel, writes) in [
-        ("move", &["column", "order", "lane"][..]),
-        ("create", &["title", "column", "lane"][..]),
+        ("move", &["column", "after", "before", "lane"][..]),
+        (
+            "create",
+            &["title", "column", "after", "before", "lane"][..],
+        ),
         ("remove", &[][..]),
     ] {
         let params = params_of(forms[0]["map"][channel].as_str().unwrap());
@@ -85,12 +94,18 @@ fn the_form_names_at_most_four_facts_and_the_capabilities_are_the_contract_ids()
 /// Arguments that make `key` succeed on the board `work` (`record` is the card to move or delete, empty for a create).
 fn valid(key: &str) -> Vec<(&'static str, &'static str)> {
     match key {
-        "card.move" => vec![("board", "work"), ("column", "doing"), ("index", "0")],
+        "card.move" => vec![
+            ("board", "work"),
+            ("column", "doing"),
+            ("after", ""),
+            ("before", ""),
+        ],
         "task.create" => vec![
             ("title", "Probe"),
             ("board", "work"),
             ("column", "doing"),
-            ("index", "0"),
+            ("after", ""),
+            ("before", ""),
         ],
         _ => vec![],
     }

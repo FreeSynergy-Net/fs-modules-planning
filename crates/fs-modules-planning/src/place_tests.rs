@@ -1,5 +1,5 @@
-//! The placing of a card and the creation with a place, over a real store in a temporary folder: which cards the index pins (only the
-//! shown cards before the insertion point of the target column), that the others keep following their `progress`, and that a
+//! The placing of a card between neighbours and the creation with a place, over a real store in a temporary folder: which cards get a
+//! place (only the shown cards before the place in the target column), that the others keep following their `progress`, and that a
 //! creation whose placing fails leaves no task behind.
 //!
 //! Pattern: table-free scenario tests over the core (`TaskRepo`), no socket.
@@ -63,24 +63,23 @@ async fn progress(f: &Fixture, at: usize, value: &str) {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn a_move_pins_only_the_cards_before_the_insertion_point_of_the_target_column() {
+async fn a_move_gives_a_place_only_to_the_cards_before_it_and_the_others_keep_their_progress() {
     let f = fixture(&["a", "b", "c", "d"]).await;
-    // d to place 1 of `todo`: only `a` (before the point) is pinned with it; b and c are not touched
-    place(&f.repo, f.board, &f.uids[3], "todo", Some(1))
+    let u = &f.uids;
+    // d between a and b: a (before the place) and d get a place; b and c are not written
+    place(&f.repo, f.board, &u[3], "todo", Some(&u[0]), Some(&u[1]))
         .await
         .unwrap();
     assert_eq!(shown(&f).await, ["todo/a", "todo/d", "todo/b", "todo/c"]);
-    let order = f
-        .repo
-        .board_get(f.board)
-        .await
-        .unwrap()
-        .unwrap()
-        .board
-        .order;
-    assert_eq!(order["todo"], [f.uids[0].clone(), f.uids[3].clone()]);
-    assert_eq!(order.len(), 1, "no other column is pinned: {order:?}");
-    // a card that was never touched still follows its progress (b is done elsewhere, the card changes column on its own)
+    let board = f.repo.board_get(f.board).await.unwrap().unwrap().board;
+    assert_eq!(board.order()["todo"], [u[0].clone(), u[3].clone()]);
+    assert_eq!(
+        board.place.len(),
+        2,
+        "no other card is written: {:?}",
+        board.place
+    );
+    // a card that was never touched still follows its progress
     progress(&f, 1, "completed").await;
     progress(&f, 2, "in-process").await;
     assert_eq!(shown(&f).await, ["todo/a", "todo/d", "doing/c", "done/b"]);
@@ -90,9 +89,16 @@ async fn a_move_pins_only_the_cards_before_the_insertion_point_of_the_target_col
 async fn a_move_to_another_column_leaves_the_untouched_columns_to_their_progress() {
     let f = fixture(&["a", "b", "c"]).await;
     progress(&f, 2, "in-process").await; // c in `doing`
-    place(&f.repo, f.board, &f.uids[0], "doing", Some(0))
-        .await
-        .unwrap();
+    place(
+        &f.repo,
+        f.board,
+        &f.uids[0],
+        "doing",
+        None,
+        Some(&f.uids[2]),
+    )
+    .await
+    .unwrap();
     assert_eq!(shown(&f).await, ["todo/b", "doing/a", "doing/c"]);
     // `b` was not placed by anyone: when it is completed it goes to `done`
     progress(&f, 1, "completed").await;
@@ -100,16 +106,21 @@ async fn a_move_to_another_column_leaves_the_untouched_columns_to_their_progress
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn the_end_pins_the_whole_target_column_and_an_index_past_the_end_clamps() {
+async fn the_end_and_the_top_need_one_neighbour_and_a_gone_neighbour_does_not_refuse() {
     let f = fixture(&["a", "b", "c"]).await;
-    place(&f.repo, f.board, &f.uids[0], "todo", None)
+    let u = &f.uids;
+    place(&f.repo, f.board, &u[0], "todo", Some(&u[2]), None)
         .await
         .unwrap();
     assert_eq!(shown(&f).await, ["todo/b", "todo/c", "todo/a"]);
-    place(&f.repo, f.board, &f.uids[1], "todo", Some(99))
+    place(&f.repo, f.board, &u[1], "todo", Some("gone"), None)
         .await
         .unwrap();
     assert_eq!(shown(&f).await, ["todo/c", "todo/a", "todo/b"]);
+    place(&f.repo, f.board, &u[1], "todo", None, Some(&u[2]))
+        .await
+        .unwrap();
+    assert_eq!(shown(&f).await, ["todo/b", "todo/c", "todo/a"]);
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -117,39 +128,32 @@ async fn a_failed_placing_of_a_new_task_takes_the_task_back() {
     let f = fixture(&["a"]).await;
     let before = f.repo.list().await.unwrap().len();
     // a column that is not there (removed in the meantime): the placing is refused after the task was made
-    let e = create_placed(&f.repo, f.board, "new".into(), "nowhere", None)
+    let e = create_placed(&f.repo, f.board, "new".into(), "nowhere", None, None)
         .await
         .unwrap_err();
     assert!(e.to_string().contains("nowhere"), "{e}");
     assert_eq!(f.repo.list().await.unwrap().len(), before);
     // a board that vanished in the meantime
     f.repo.board_delete(f.board).await.unwrap();
-    create_placed(&f.repo, f.board, "new".into(), "todo", None)
+    create_placed(&f.repo, f.board, "new".into(), "todo", None, None)
         .await
         .unwrap_err();
     assert_eq!(f.repo.list().await.unwrap().len(), before);
     // the retry that works makes it once
     let g = fixture(&["a"]).await;
-    let uid = create_placed(&g.repo, g.board, "new".into(), "todo", Some(0))
-        .await
-        .unwrap();
+    let uid = create_placed(
+        &g.repo,
+        g.board,
+        "new".into(),
+        "todo",
+        None,
+        Some(&g.uids[0]),
+    )
+    .await
+    .unwrap();
     assert_eq!(g.repo.list().await.unwrap().len(), 2);
     assert_eq!(
         g.repo.board_layout(g.board).await.unwrap().columns[0].cards[0],
         uid
     );
-}
-
-#[tokio::test(flavor = "current_thread")]
-async fn the_cards_already_placed_in_the_target_column_stay_placed_when_the_index_is_above_them() {
-    let f = fixture(&["a", "b", "c", "d"]).await;
-    // a to the end: todo is b, c, a (all three pinned in that order)
-    place(&f.repo, f.board, &f.uids[0], "todo", None)
-        .await
-        .unwrap();
-    // d to the top: the placed cards b, c, a keep their places behind it (not back to the order of their creation)
-    place(&f.repo, f.board, &f.uids[3], "todo", Some(0))
-        .await
-        .unwrap();
-    assert_eq!(shown(&f).await, ["todo/d", "todo/b", "todo/c", "todo/a"]);
 }

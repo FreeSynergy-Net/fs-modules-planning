@@ -9,6 +9,7 @@ mod board;
 mod exec;
 mod gap;
 mod ops;
+mod place;
 mod relation;
 mod task;
 mod work;
@@ -28,6 +29,7 @@ pub use fs_jscalendar::model::{
 };
 pub use gap::{GAP_KEY, MAX_GAP_DAYS, parse_gap};
 pub use ops::TASK_STATUS_KEY;
+pub use place::Place;
 pub use relation::Relation;
 pub use task::Task;
 pub use work::{

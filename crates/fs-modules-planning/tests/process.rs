@@ -186,7 +186,7 @@ async fn a_card_made_by_commands_is_still_there_after_a_restart() {
             let new_card = [("title", "Probe"), ("board", "work"), ("column", "todo")];
             let made = invoke(&source.client, "task.create", "", &new_card).await;
             assert!(!made.failed, "{made:?}");
-            let to = [("board", "work"), ("column", "doing"), ("index", "0")];
+            let to = [("board", "work"), ("column", "doing")];
             let moved = invoke(&source.client, "card.move", &made.record, &to).await;
             assert!(!moved.failed, "{moved:?}");
             assert_eq!(titles(&source.client).await, ["doing/Probe"]);

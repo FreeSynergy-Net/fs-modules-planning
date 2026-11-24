@@ -3,8 +3,9 @@
 mod common;
 
 use common::repo;
-use fs_tasks_core::model::{Board, BoardTask, Column};
+use fs_tasks_core::model::{Board, BoardTask, Column, Place};
 use fs_tasks_core::{Boards, Error, Task, TaskItems, TaskRepo};
+use std::collections::BTreeMap;
 
 async fn make(
     r: &TaskRepo,
@@ -90,12 +91,20 @@ fn a_board_that_is_not_valid_says_why() {
     b.columns[0].wip_limit = Some(0);
     assert!(b.problem().is_some());
     let mut b = Board::standard("x");
-    b.order.insert("ghost".into(), vec!["a".into()]);
+    b.place.insert(
+        "a".into(),
+        Place {
+            column: "ghost".into(),
+            key: "80".into(),
+        },
+    );
     assert!(b.problem().unwrap().contains("does not exist"));
     let mut b = Board::standard("x");
-    b.order.insert("todo".into(), vec!["a".into()]);
-    b.order.insert("done".into(), vec!["a".into()]);
-    assert!(b.problem().unwrap().contains("more than once"));
+    let twice = BTreeMap::from([
+        ("todo".into(), vec!["a".into()]),
+        ("done".into(), vec!["a".into()]),
+    ]);
+    assert!(b.set_order(&twice).unwrap_err().contains("more than once"));
     assert!(
         Board {
             columns: vec![],

@@ -14,6 +14,7 @@
 // The generated `Server` traits are async for every method, also those that never wait.
 #![allow(clippy::missing_errors_doc, clippy::unused_async_trait_impl)]
 
+mod args;
 mod boards;
 mod both;
 mod errors;
@@ -30,6 +31,6 @@ mod write;
 #[cfg(test)]
 mod write_tests;
 
-pub use formsource::{FORM_CARDS, FORM_CARDS_1_0, PROVIDER};
+pub use formsource::{FORM_CARDS, FORM_NAME, PROVIDER};
 pub use root::{CAPABILITIES, CONTRACT_VERSION, Planning, actor_of};
 pub use serve::{PROGRAM, serve_command};

@@ -1,7 +1,7 @@
 [
   {
     "name": "cards-in-columns",
-    "version": "1.1",
+    "version": "1.2",
     "type": "Task",
     "map": {
       "cards": "Task",
@@ -10,6 +10,8 @@
       "facts": ["due", "priority", "participants", "keywords"],
       "lane": "board",
       "order": "index",
+      "after": "after",
+      "before": "before",
       "move": "card.move",
       "create": "task.create",
       "remove": "task.delete"
@@ -21,6 +23,8 @@
       "progress": "text",
       "board": "text",
       "index": "number",
+      "after": "reference",
+      "before": "reference",
       "priority": "text",
       "participants": "text",
       "keywords": "text",

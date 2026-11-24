@@ -1,6 +1,6 @@
 {
   "module": "planning",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "contract": "planning",
   "scope": "own-contract",
   "commands": [
@@ -9,9 +9,10 @@
       "params": [
         { "path": "board", "type": "text", "required": true },
         { "path": "column", "type": "text", "required": true },
-        { "path": "index", "type": "number" }
+        { "path": "after", "type": "reference" },
+        { "path": "before", "type": "reference" }
       ],
-      "help": { "topic": "planning-card-move", "text": { "en": "Move a card to another column or place.", "de": "Verschiebt eine Karte in eine andere Spalte oder an eine andere Stelle." } }
+      "help": { "topic": "planning-card-move", "text": { "en": "Move a card to another column or between two cards (after, before: the neighbours; never a number).", "de": "Verschiebt eine Karte in eine andere Spalte oder zwischen zwei Karten (after, before: die Nachbarn; nie eine Zahl)." } }
     },
     {
       "capability": "task.create", "call": "Items.create", "access": "write",
@@ -19,9 +20,10 @@
         { "path": "title", "type": "text", "required": true },
         { "path": "board", "type": "text", "required": true },
         { "path": "column", "type": "text", "required": true },
-        { "path": "index", "type": "number" }
+        { "path": "after", "type": "reference" },
+        { "path": "before", "type": "reference" }
       ],
-      "help": { "topic": "planning-task-create", "text": { "en": "Create a task and put its card into a column, at a place of the column.", "de": "Legt eine Aufgabe an und stellt ihre Karte in eine Spalte, an eine Stelle der Spalte." } }
+      "help": { "topic": "planning-task-create", "text": { "en": "Create a task and put its card into a column, between two cards of the column (after, before).", "de": "Legt eine Aufgabe an und stellt ihre Karte in eine Spalte, zwischen zwei Karten der Spalte (after, before)." } }
     },
     {
       "capability": "task.delete", "call": "Items.delete", "access": "delete",

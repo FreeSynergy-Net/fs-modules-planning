@@ -22,7 +22,7 @@ Decision (strategy 6e, F2): the renaming to `fs-todo` stays a later step. A bund
 
 - `fs-dependency`: dependencies between items (RFC 9253 `FINISHTOSTART`, `DEPENDS-ON`), cycles, readiness.
 - `fs-critical-path`: critical path and slack (CPM), built on `fs-dependency`.
-- `fs-rank`: hand order of items (fractional rank).
+- `fs-rank`: hand order of items (fractional rank; a crate of this workspace, a thin adapter around `fracindex`; used by `Board.place` of `fs-tasks-core`).
 - `fs-checklist`: checklists with their own order, built on `fs-rank`.
 - `fs-progress`: progress states as a rule set with RFC 8984 defaults.
 - `fs-claim`: who takes an item, and until when.

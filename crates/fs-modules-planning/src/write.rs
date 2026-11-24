@@ -10,13 +10,12 @@
 //! as supported (`TaskItems::capabilities`), nothing more is claimed; rights per person (groups, several users) come later. A command
 //! the provider cannot do is `form-source-forbidden` (403): `formsource.capnp` names no kinds for `invoke`, and the host (SW-5) tells them apart only later, so no new kind `unsupported` (501) is started here.
 
-use std::collections::BTreeMap;
-
 use fs_interfaces::Capabilities;
 use fs_interfaces::formsource_capnp::value;
 use fs_rpc::{Problem, run_to_end};
 use fs_tasks_core::{BoardEntry, Boards, Error, TaskEntry, TaskItems, TaskRepo};
 
+use crate::args::{check_uid, take, take_neighbour, text_args};
 use crate::errors::rpc_error;
 use crate::place::{create_placed, place};
 
@@ -35,8 +34,8 @@ pub(crate) const UID_MAX: usize = 255;
 pub(crate) const RECORD_COMMANDS: [&str; 2] = ["card.move", "task.delete"];
 pub(crate) const SET_COMMANDS: [&str; 1] = ["task.create"];
 
-const MOVE_ARGS: [&str; 3] = ["board", "column", "index"];
-const CREATE_ARGS: [&str; 4] = ["board", "column", "title", "index"];
+const MOVE_ARGS: [&str; 4] = ["board", "column", "after", "before"];
+const CREATE_ARGS: [&str; 5] = ["board", "column", "title", "after", "before"];
 
 /// What a command made or changed: the record (empty for a delete) and a short code for people.
 pub(crate) struct Done {
@@ -83,62 +82,6 @@ pub(crate) fn permit(caps: &Capabilities, command: &str) -> Result<(), Failure> 
     ))
 }
 
-/// The text values of a request by path. A path that is not in `allowed` or that comes twice is refused with the reason, never
-/// silently dropped.
-pub(crate) fn text_args(
-    list: capnp::struct_list::Reader<'_, value::Owned>,
-    allowed: &[&str],
-) -> Result<BTreeMap<String, String>, Failure> {
-    let mut out = BTreeMap::new();
-    for v in list {
-        let path = v
-            .get_path()
-            .and_then(|p| p.to_string().map_err(capnp::Error::from))
-            .map_err(|e| bad_wire(&e))?;
-        let text = v
-            .get_text()
-            .and_then(|t| t.to_string().map_err(capnp::Error::from))
-            .map_err(|e| bad_wire(&e))?;
-        if !allowed.contains(&path.as_str()) {
-            let why = format!(
-                "unknown argument {path:?} (allowed: {})",
-                allowed.join(", ")
-            );
-            return Err(boxed(BAD_ARGS, why, 400));
-        }
-        if out.insert(path.clone(), text).is_some() {
-            return Err(boxed(
-                BAD_ARGS,
-                format!("argument {path:?} given twice"),
-                400,
-            ));
-        }
-    }
-    Ok(out)
-}
-
-fn take(got: &mut BTreeMap<String, String>, path: &str) -> Result<String, Failure> {
-    got.remove(path)
-        .ok_or_else(|| boxed(BAD_ARGS, format!("`{path}` is missing"), 400))
-}
-
-fn take_index(got: &mut BTreeMap<String, String>) -> Result<Option<usize>, Failure> {
-    got.remove("index")
-        .map(|t| {
-            t.parse::<usize>()
-                .map_err(|_| boxed(BAD_ARGS, "`index` is no number", 400))
-        })
-        .transpose()
-}
-
-fn check_uid(uid: &str) -> Result<(), Failure> {
-    if uid.is_empty() || uid.len() > UID_MAX {
-        let why = format!("`record` must be a uid of 1 to {UID_MAX} bytes");
-        return Err(boxed(BAD_ARGS, why, 400));
-    }
-    Ok(())
-}
-
 /// The board for `scope`: the id wins; a name that more than one board has is refused (the caller uses the id).
 pub(crate) fn board_named<'a>(
     boards: &'a [BoardEntry],
@@ -167,7 +110,7 @@ async fn task_of(repo: &TaskRepo, uid: &str) -> Result<TaskEntry, Failure> {
         .ok_or_else(|| boxed(UNKNOWN_RECORD, format!("no task {uid:?}"), 404))
 }
 
-/// `card.move`: the card `uid` into `column` of the board `board` at `index` (text of a number; none = the end).
+/// `card.move`: the card `uid` into `column` of the board `board`, right after the card `after` and right before the card `before` (record ids; none = the end).
 pub(crate) async fn move_card(
     repo: &TaskRepo,
     uid: String,
@@ -176,22 +119,35 @@ pub(crate) async fn move_card(
     let mut got = text_args(args, &MOVE_ARGS)?;
     check_uid(&uid)?;
     let (board, column) = (take(&mut got, "board")?, take(&mut got, "column")?);
-    let index = take_index(&mut got)?;
+    let (after, before) = (
+        take_neighbour(&mut got, "after"),
+        take_neighbour(&mut got, "before"),
+    );
     let boards = repo.boards().await.map_err(to_problem)?;
     let id = board_named(&boards, &board)?.id;
     task_of(repo, &uid).await?;
     let (repo, moved) = (repo.clone(), uid.clone());
-    run_to_end(async move { place(&repo, id, &moved, &column, index).await })
+    run_to_end(async move {
+        place(
+            &repo,
+            id,
+            &moved,
+            &column,
+            after.as_deref(),
+            before.as_deref(),
+        )
         .await
-        .map_err(|e| boxed(INTERNAL, e.to_string(), 500))?
-        .map_err(to_problem)?;
+    })
+    .await
+    .map_err(|e| boxed(INTERNAL, e.to_string(), 500))?
+    .map_err(to_problem)?;
     Ok(Done {
         record: uid,
         text: "card-moved",
     })
 }
 
-/// `task.create`: a task with `title`, put into `column` of `board` at `index` (none = the end). Board and column are checked before
+/// `task.create`: a task with `title`, put into `column` of `board` between `after` and `before` (none = the end). Board and column are checked before
 /// anything is written; if the placing still fails (a conflict, a column or board that vanished in between), the new task is deleted
 /// again (`create_placed`). A refused command leaves nothing behind, so a retry never makes the task twice.
 pub(crate) async fn create_task(
@@ -212,17 +168,30 @@ pub(crate) async fn create_task(
         return Err(boxed(BAD_ARGS, "`title` is empty", 400));
     }
     let (board, column) = (take(&mut got, "board")?, take(&mut got, "column")?);
-    let index = take_index(&mut got)?;
+    let (after, before) = (
+        take_neighbour(&mut got, "after"),
+        take_neighbour(&mut got, "before"),
+    );
     let boards = repo.boards().await.map_err(to_problem)?;
     let entry = board_named(&boards, &board)?;
     if !entry.board.columns.iter().any(|c| c.id == column) {
         return Err(to_problem(Error::Rejected(format!("no column {column:?}"))));
     }
     let (id, repo) = (entry.id, repo.clone());
-    let uid = run_to_end(async move { create_placed(&repo, id, title, &column, index).await })
+    let uid = run_to_end(async move {
+        create_placed(
+            &repo,
+            id,
+            title,
+            &column,
+            after.as_deref(),
+            before.as_deref(),
+        )
         .await
-        .map_err(|e| boxed(INTERNAL, e.to_string(), 500))?
-        .map_err(to_problem)?;
+    })
+    .await
+    .map_err(|e| boxed(INTERNAL, e.to_string(), 500))?
+    .map_err(to_problem)?;
     Ok(Done {
         record: uid,
         text: "task-created",
@@ -264,9 +233,4 @@ pub(crate) fn to_problem(e: Error) -> Failure {
             Problem::from_error(&rpc_error(e)).unwrap_or_else(|| problem(INTERNAL, text, 500)),
         ),
     }
-}
-
-#[allow(clippy::unnecessary_box_returns)] // the error type of the argument readers is boxed (a `Problem` is large)
-fn bad_wire(e: &capnp::Error) -> Failure {
-    boxed(BAD_ARGS, e.to_string(), 400)
 }

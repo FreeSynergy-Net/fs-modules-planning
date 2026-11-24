@@ -2,12 +2,14 @@
 //!
 //! Pattern: Value object + pure functions — a board is its own object (never a member of a task, so a task can be on
 //! several boards). A card is a task `uid`. The column of a card without a place of its own comes from `progress`
-//! (a column lists the progress values it stands for); a place in `order` wins over it. A limit on the cards of a column
+//! (a column lists the progress values it stands for); a place in `place` wins over it. A limit on the cards of a column
 //! (WIP) is only reported by the layout, never enforced: nothing is refused because a column is full.
 
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
+
+use super::Place;
 
 /// One column of a board.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -42,14 +44,15 @@ pub struct Board {
     /// The name shown.
     pub name: String,
     /// Which tasks are on it: those with this label (JSCalendar keyword); none = every task. Tasks that have a place
-    /// in `order` are on it too.
+    /// in `place` are on it too.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
     /// The columns, left to right.
     pub columns: Vec<Column>,
-    /// The cards that were placed: column id to the task `uid`s in it, top to bottom.
+    /// The cards that were placed by hand: the task `uid` to its column and rank key. The order in a column is the sort by key
+    /// (`Board::order`), never a stored list. An old board with a list `order` is read without it (no migration).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    pub order: BTreeMap<String, Vec<String>>,
+    pub place: BTreeMap<String, Place>,
 }
 
 /// A task as the layout needs it.
@@ -91,7 +94,7 @@ impl Board {
                 Column::new("done", "Done", &["completed"]),
                 Column::new("closed", "Closed", &["failed", "cancelled"]),
             ],
-            order: BTreeMap::new(),
+            place: BTreeMap::new(),
         }
     }
 
@@ -116,17 +119,12 @@ impl Board {
                 ));
             }
         }
-        let mut placed = BTreeSet::new();
-        for (column, cards) in &self.order {
+        for place in self.place.values() {
+            let column = &place.column;
             if !ids.contains(column.as_str()) {
                 return Some(format!(
                     "cards are placed in the column {column:?}, which does not exist"
                 ));
-            }
-            for uid in cards {
-                if !placed.insert(uid.as_str()) {
-                    return Some(format!("the card {uid:?} is placed more than once"));
-                }
             }
         }
         None
@@ -141,43 +139,19 @@ impl Board {
             .or_else(|| self.columns.first())
     }
 
-    /// Place a card in a column at `index` (end if `None` or too large), taking it out of any other place. The progress
-    /// of the task is not changed (that is an edit of the task), and a full column does not refuse the card.
-    ///
-    /// # Errors
-    /// The column does not exist.
-    pub fn move_card(
-        &mut self,
-        uid: &str,
-        column: &str,
-        index: Option<usize>,
-    ) -> Result<(), String> {
-        if !self.columns.iter().any(|c| c.id == column) {
-            return Err(format!("no column {column:?}"));
-        }
-        for cards in self.order.values_mut() {
-            cards.retain(|u| u != uid);
-        }
-        self.order.retain(|_, cards| !cards.is_empty());
-        let cards = self.order.entry(column.to_string()).or_default();
-        let at = index.map_or(cards.len(), |i| i.min(cards.len()));
-        cards.insert(at, uid.to_string());
-        Ok(())
-    }
-
     /// Take a column away; its placed cards stand where their progress says again.
     pub fn remove_column(&mut self, column: &str) {
         self.columns.retain(|c| c.id != column);
-        self.order.remove(column);
+        self.place.retain(|_, p| p.column != column);
     }
 
     /// The layout for these tasks (those that are on the board; the caller picked them by label or place).
     pub fn layout(&self, tasks: &[BoardTask]) -> Layout {
         let known: BTreeMap<&str, &BoardTask> = tasks.iter().map(|t| (t.uid.as_str(), t)).collect();
+        let order = self.order();
         let placed: BTreeSet<&str> = self
-            .order
-            .values()
-            .flatten()
+            .place
+            .keys()
             .map(String::as_str)
             .filter(|u| known.contains_key(u))
             .collect();
@@ -185,8 +159,7 @@ impl Board {
             .columns
             .iter()
             .map(|column| {
-                let mut cards: Vec<String> = self
-                    .order
+                let mut cards: Vec<String> = order
                     .get(&column.id)
                     .into_iter()
                     .flatten()

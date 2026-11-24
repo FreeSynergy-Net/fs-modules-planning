@@ -12,6 +12,8 @@ contract = ["dep:capnp"]
 
 [dependencies]
 fs-objects = { git = "https://github.com/FreeSynergy-Net/fs-objects", tag = "v0.0.10" }
+# The hand order of the cards of a board: a rank key per card (fractional index), never a position number.
+fs-rank = { path = "../fs-rank" }
 # Shared JSCalendar types (time, rule, participants, upgrade, validation, iCalendar); Task itself is ours (ADR 0050).
 fs-jscalendar = { git = "https://github.com/FreeSynergy-Net/fs-jscalendar", tag = "v0.0.7" }
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
@@ -22,7 +24,7 @@ async-trait = "0.1"
 tokio = { version = "1", features = ["sync"] }
 capnp = { version = "0.27", optional = true }
 # The contract and the provider rule (ADR 0045). The generated code is re-exported with feature `contract`.
-fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", tag = "v0.0.34" }
+fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", tag = "v0.1.0", version = "0.1.0" }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
