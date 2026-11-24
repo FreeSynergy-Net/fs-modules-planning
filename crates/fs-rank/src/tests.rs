@@ -1,4 +1,6 @@
 //! Tests of the adapter: order, many inserts, two writers, text form (byte order = text order), errors.
+//!
+//! Pattern: none (plain tests of the public API).
 
 use crate::{Error, Key};
 
