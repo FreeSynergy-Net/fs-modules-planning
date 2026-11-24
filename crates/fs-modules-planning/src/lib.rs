@@ -18,7 +18,6 @@ mod args;
 mod boards;
 mod both;
 mod cards;
-mod compat;
 mod errors;
 mod facts;
 mod formsource;
@@ -30,6 +29,7 @@ mod place;
 #[cfg(test)]
 mod place_tests;
 mod root;
+mod scope;
 mod serve;
 mod wire;
 mod write;

@@ -150,8 +150,13 @@ impl TaskRepo {
     pub(super) async fn board_delete_inner(&self, id: ObjectId) -> Result<()> {
         let _one_at_a_time = self.writes.lock().await;
         self.board_object(id).await?.ok_or(Error::NotFound(id))?;
-        self.objects.delete(id, &self.by.actor).await?;
-        Ok(())
+        match self
+            .write_unit(vec![fs_objects::Write::Delete { id, expect: None }])
+            .await?
+        {
+            fs_objects::Outcome::Done(_) => Ok(()),
+            other => Err(super::unit::refused(&other)),
+        }
     }
 
     pub(super) async fn board_layout_inner(&self, id: ObjectId) -> Result<Layout> {

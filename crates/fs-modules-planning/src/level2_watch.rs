@@ -5,7 +5,9 @@
 use capnp_rpc::new_client;
 use fs_interfaces::common_capnp::subscription;
 use fs_interfaces::formsource_capnp::change_sink;
-use fs_objects::{Activity, ObjectId};
+use fs_objects::Activity;
+
+use crate::scope::Scope;
 use tokio::sync::broadcast::error::RecvError;
 
 use crate::level2::{FEED_ENDED, seen, write_change, write_problem};
@@ -25,7 +27,7 @@ impl Drop for Subscription {
 /// Push every head change in `scope` to `sink` until the receiver is gone, too slow or the subscription dropped.
 pub(crate) fn start_watch(
     repo: std::sync::Arc<fs_tasks_core::TaskRepo>,
-    board: Option<ObjectId>,
+    board: Option<Scope>,
     sink: change_sink::Client,
     mut feed: tokio::sync::broadcast::Receiver<Activity>,
 ) -> subscription::Client {
@@ -62,18 +64,11 @@ pub(crate) fn start_watch(
     });
     new_client(Subscription(task))
 }
-/// Whether the change is about the board (or one of its cards); no board = every change.
-async fn in_scope(repo: &fs_tasks_core::TaskRepo, board: Option<ObjectId>, a: &Activity) -> bool {
-    let Some(board) = board else { return true };
-    if a.object == board {
-        return true;
-    }
-    match fs_tasks_core::Boards::board_layout(repo, board).await {
-        Ok(layout) => layout
-            .columns
-            .iter()
-            .flat_map(|c| c.cards.iter())
-            .any(|uid| uid.parse::<ObjectId>().ok() == Some(a.object)),
-        Err(_) => false,
+
+/// Whether the change is in the scope; no scope = every change.
+async fn in_scope(repo: &fs_tasks_core::TaskRepo, scope: Option<Scope>, a: &Activity) -> bool {
+    match scope {
+        Some(scope) => scope.holds(repo, a).await,
+        None => true,
     }
 }

@@ -138,7 +138,7 @@ async fn the_end_and_the_top_need_one_neighbour_and_a_gone_neighbour_does_not_re
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn a_failed_placing_of_a_new_task_takes_the_task_back() {
+async fn a_placing_that_is_refused_leaves_no_task_behind() {
     let f = fixture(&["a"]).await;
     let before = f.repo.list().await.unwrap().len();
     // a column that is not there (removed in the meantime): the placing is refused after the task was made

@@ -91,8 +91,6 @@ impl TaskRepo {
     }
 
     pub(super) async fn delete_inner(&self, id: ObjectId) -> Result<()> {
-        let stored = self.stored(id).await?.ok_or(Error::NotFound(id))?;
-        drop(stored);
         match self.delete_checked(id, None).await? {
             fs_objects::Outcome::Done(_) => Ok(()),
             other => Err(super::unit::refused(&other)),

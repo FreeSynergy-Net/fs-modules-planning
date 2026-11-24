@@ -9,9 +9,8 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use fs_interfaces::tasks_capnp::{board, board_column, board_layout, boards, placement};
-use fs_rpc::run_to_end;
+use fs_rpc::{run_to_end, write_envelope};
 
-use crate::compat::write_envelope;
 use fs_tasks_core::model::{Board, Column, Layout};
 use fs_tasks_core::{BoardEntry, Boards, Revision};
 

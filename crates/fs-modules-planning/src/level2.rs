@@ -3,15 +3,15 @@
 //!
 //! Pattern: Command with an expectation (`invokeIf`), Compensating Transaction (`revert`), Observer (`changes` queries, `watch` pushes),
 //! Context Object (`introduce`: the origin of THIS connection, in one `Rc<RefCell<Origin>>` that `bootstrap` makes per connection, never global).
-//! Deviation: the schema names the problem and its detail, the wire of `Common.Problem` is written here by hand because fs-rpc `Problem::write`
-//! is bound to an older `fs-interfaces` in the lock (it goes when fs-rpc takes the same pin).
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
 use fs_interfaces::common_capnp::{problem, uuid};
 use fs_interfaces::formsource_capnp::{change_ref, conflict, origin as origin_wire, write_result};
-use fs_objects::{Activity, ChangeFilter, ObjectId, Origin};
+use fs_objects::{Activity, ChangeFilter, Origin};
+
+use crate::scope::Scope;
 use fs_rpc::Problem;
 use fs_types::BasicValue as _;
 
@@ -29,18 +29,9 @@ pub(crate) const FEED_ENDED: &str = "https://freesynergy.net/problems/feed-ended
 /// The origin of one connection: given by `introduce`, empty until then.
 pub(crate) type Context = Rc<RefCell<Origin>>;
 
-/// Write a `Common.Problem` (type, title, detail, status, extensions).
-pub(crate) fn write_problem(mut out: problem::Builder<'_>, p: &Problem) {
-    out.set_type(p.problem_type.as_str());
-    out.set_title(p.title.as_str());
-    out.set_detail(p.detail.as_str());
-    out.set_status(p.status);
-    let mut list = out.init_extensions(u32::try_from(p.extensions.len()).unwrap_or(0));
-    for (i, (key, value)) in (0u32..).zip(&p.extensions) {
-        let mut entry = list.reborrow().get(i);
-        entry.set_key(key.as_str());
-        entry.set_value(value.as_str());
-    }
+/// Write a `Common.Problem` (fs-rpc does the work: the detail is cut, the extensions are admitted).
+pub(crate) fn write_problem(out: problem::Builder<'_>, p: &Problem) {
+    p.write(out);
 }
 
 /// The 128 bits of a UUID as the wire has them.
@@ -149,8 +140,8 @@ impl FormSourceImpl {
         repo
     }
 
-    /// The board and the ids of its cards in `scope` (empty = no filter): the objects whose changes belong to it.
-    async fn objects_of(&self, scope: &str) -> capnp::Result<Option<Vec<ObjectId>>> {
+    /// The scope a name stands for (empty = the whole module); a name that is no board is `form-source-unknown-scope`.
+    pub(crate) async fn board_of(&self, scope: &str) -> capnp::Result<Option<Scope>> {
         if scope.is_empty() {
             return Ok(None);
         }
@@ -158,18 +149,7 @@ impl FormSourceImpl {
             .await
             .map_err(rpc_error)?;
         let board = crate::write::board_named(&boards, scope).map_err(|p| p.into_error())?;
-        let layout = fs_tasks_core::Boards::board_layout(&*self.repo, board.id)
-            .await
-            .map_err(rpc_error)?;
-        let mut ids = vec![board.id];
-        ids.extend(
-            layout
-                .columns
-                .iter()
-                .flat_map(|c| c.cards.iter())
-                .filter_map(|uid| uid.parse::<ObjectId>().ok()),
-        );
-        Ok(Some(ids))
+        Ok(Some(Scope(board.id)))
     }
 
     /// The heads of the changes that match: of the own program (`run` empty) or of one run, newest first, with the cursor of this service.
@@ -186,8 +166,17 @@ impl FormSourceImpl {
         } else {
             filter.run = Some(run.to_owned());
         }
-        filter.objects = self.objects_of(scope).await?;
+        let board = self.board_of(scope).await?;
         let mut all = self.repo.changes_of(&filter).await.map_err(rpc_error)?;
+        if let Some(board) = board {
+            let mut kept = Vec::with_capacity(all.len());
+            for a in all {
+                if board.holds(&self.repo, &a).await {
+                    kept.push(a);
+                }
+            }
+            all = kept;
+        }
         all.reverse();
         let more = all.len() > skip + limit;
         Ok((all.into_iter().skip(skip).take(limit).collect(), more))
@@ -230,15 +219,5 @@ pub(crate) async fn record_of(repo: &fs_tasks_core::TaskRepo, a: &Activity) -> S
         Ok(Some(entry)) => entry.task.uid,
         Ok(None) if a.kind.as_str() == "Delete" => format!("urn:uuid:{}", a.object),
         _ => a.object.to_string(),
-    }
-}
-
-impl FormSourceImpl {
-    /// The board a scope names (`None` = the whole module); a scope that names no board is `form-source-unknown-scope`.
-    pub(crate) async fn board_of(&self, scope: &str) -> capnp::Result<Option<ObjectId>> {
-        Ok(self
-            .objects_of(scope)
-            .await?
-            .and_then(|ids| ids.first().copied()))
     }
 }

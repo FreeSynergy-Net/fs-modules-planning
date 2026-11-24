@@ -6,9 +6,8 @@
 use fs_interfaces::common_capnp::uuid;
 use fs_interfaces::tasks_capnp::task;
 use fs_objects::ObjectId;
-use fs_rpc::check_intake;
+use fs_rpc::{check_intake, read_uuid, write_envelope};
 
-use crate::compat::{read_uuid, write_envelope};
 use fs_tasks_core::{Revision, Task, TaskEntry};
 
 use crate::errors::rejected;

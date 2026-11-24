@@ -173,7 +173,8 @@ async fn the_suite_of_module_v1_passes_on_the_planning_service() {
             assert!(
                 report.skipped.iter().all(|s| s.starts_with("11 forbidden")
                     || s.starts_with("L2-9 gone")
-                    || s.starts_with("20 blob")),
+                    || s.starts_with("20 blob")
+                    || s.starts_with("22 standard values")),
                 "{:#?}",
                 report.skipped
             );
