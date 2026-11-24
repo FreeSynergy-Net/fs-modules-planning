@@ -1,4 +1,6 @@
 //! The rank key.
+//!
+//! Pattern: Adapter — `Key` wraps `fracindex::Fracindex` (exact pin) behind the small API FreeSynergy needs.
 
 use crate::Error;
 use fracindex::Fracindex;
@@ -19,11 +21,17 @@ impl Key {
     }
 
     /// A key right after `lower` (the end of the list).
+    ///
+    /// # Panics
+    /// Never in practice: one open bound always has room.
     pub fn after(lower: &Key) -> Self {
         Self(build(Fracindex::builder().after(&lower.0)).expect("one open bound always has room"))
     }
 
     /// A key right before `upper` (the top of the list).
+    ///
+    /// # Panics
+    /// Never in practice: one open bound always has room.
     pub fn before(upper: &Key) -> Self {
         Self(build(Fracindex::builder().before(&upper.0)).expect("one open bound always has room"))
     }
@@ -56,7 +64,7 @@ impl Key {
     /// Reads a key back from its text form.
     pub fn from_text(text: &str) -> Result<Self, Error> {
         let ok = !text.is_empty()
-            && text.len() % 2 == 0
+            && text.len().is_multiple_of(2)
             && text
                 .bytes()
                 .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b));

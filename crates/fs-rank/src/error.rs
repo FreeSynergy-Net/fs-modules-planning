@@ -1,8 +1,10 @@
 //! The error of the adapter.
+//!
+//! Pattern: none (plain error enum via `thiserror`) — one `Error` for every operation of the crate.
 
 /// Why a key could not be made or read.
 ///
-/// Pattern: Adapter — the one error type of this crate; the error of the wrapped crate stays inside as text.
+/// The error of the wrapped crate stays inside as text.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
     /// The lower neighbour is not smaller than the upper one: there is no place between them.

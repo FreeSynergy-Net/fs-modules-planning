@@ -1,3 +1,5 @@
+//! Tests of the adapter: order, many inserts, two writers, text form (byte order = text order), errors.
+
 use crate::{Error, Key};
 
 fn text_sorted(keys: &[Key]) -> bool {
@@ -11,7 +13,7 @@ fn between_before_after_keep_order() {
     let b = Key::between(&a, &c).unwrap();
     let top = Key::before(&a);
     assert!(top < a && a < b && b < c);
-    assert_eq!(Key::place(None, None).unwrap().to_text().is_empty(), false);
+    assert_eq!(Key::place(None, None).unwrap(), Key::first());
     assert!(Key::place(Some(&a), Some(&c)).unwrap() > a);
 }
 
@@ -49,7 +51,7 @@ fn text_sorts_like_the_keys() {
         x ^= x << 13;
         x ^= x >> 7;
         x ^= x << 17;
-        let at = (x % (keys.len() as u64 + 1)) as usize;
+        let at = usize::try_from(x % (keys.len() as u64 + 1)).unwrap();
         let lower = at.checked_sub(1).map(|i| &keys[i]);
         let upper = keys.get(at);
         let k = Key::place(lower, upper).unwrap();
