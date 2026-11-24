@@ -46,6 +46,14 @@ impl ObjectRepository for Charging {
         self.work.fetch_add(1, Ordering::Relaxed);
         self.store.put_and_log(object, actor, extra).await
     }
+    async fn write_by(
+        &self,
+        by: &fs_objects::By,
+        writes: Vec<fs_objects::Write>,
+    ) -> fs_objects::Result<fs_objects::Outcome> {
+        self.work.fetch_add(1, Ordering::Relaxed);
+        self.store.write_by(by, writes).await
+    }
     async fn get(&self, id: ObjectId) -> Result<Option<StoredObject>> {
         self.work.fetch_add(1, Ordering::Relaxed);
         self.store.get(id).await
@@ -88,11 +96,20 @@ fn ics(first: usize, n: usize) -> String {
 /// Work and index lookups to import `n` new tasks into a store that holds `before` others.
 async fn work_for(before: usize, n: usize) -> (usize, usize) {
     let charging = Arc::new(Charging {
-        store: Arc::new(TursoStore::open_in_memory().await.unwrap()),
+        store: Arc::new(
+            TursoStore::open_with(":memory:", fs_objects::testing::options())
+                .await
+                .unwrap(),
+        ),
         work: AtomicUsize::new(0),
         lookups: AtomicUsize::new(0),
     });
-    let repo = TaskRepo::with_backend(charging.clone(), charging.clone(), ME);
+    let repo = TaskRepo::with_backend(
+        charging.clone(),
+        charging.clone(),
+        ME,
+        fs_objects::testing::owner(),
+    );
     let first = repo.import_ics(&ics(10_000, before)).await.unwrap();
     assert_eq!(first.created.len(), before);
     charging.work.store(0, Ordering::Relaxed);
@@ -136,11 +153,15 @@ async fn importing_twice_the_tasks_costs_twice_the_work() {
 #[tokio::test]
 async fn known_uids_are_skipped_also_when_they_come_twice_in_one_text() {
     let charging = Arc::new(Charging {
-        store: Arc::new(TursoStore::open_in_memory().await.unwrap()),
+        store: Arc::new(
+            TursoStore::open_with(":memory:", fs_objects::testing::options())
+                .await
+                .unwrap(),
+        ),
         work: AtomicUsize::new(0),
         lookups: AtomicUsize::new(0),
     });
-    let repo = TaskRepo::with_backend(charging.clone(), charging, ME);
+    let repo = TaskRepo::with_backend(charging.clone(), charging, ME, fs_objects::testing::owner());
     assert_eq!(repo.import_ics(&ics(0, 3)).await.unwrap().created.len(), 3);
     // todo-00001 and todo-00002 are stored; 3 and 4 are new, and 3 is in the text twice.
     let text = format!("{}{}", ics(1, 4), ics(3, 1));

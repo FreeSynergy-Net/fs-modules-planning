@@ -11,7 +11,7 @@ rust-version.workspace = true
 contract = ["dep:capnp"]
 
 [dependencies]
-fs-objects = { git = "https://github.com/FreeSynergy-Net/fs-objects", tag = "v0.0.10" }
+fs-objects = { git = "https://github.com/FreeSynergy-Net/fs-objects", rev = "f6409f2a5378ba1464e69ae216efd4d27d249182", version = "0.0.11" }
 # The hand order of the cards of a board: a rank key per card (fractional index), never a position number.
 fs-rank = { path = "../fs-rank" }
 # Shared JSCalendar types (time, rule, participants, upgrade, validation, iCalendar); Task itself is ours (ADR 0050).
@@ -19,13 +19,16 @@ fs-jscalendar = { git = "https://github.com/FreeSynergy-Net/fs-jscalendar", tag 
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+uuid = "1"
 thiserror = "2"
 async-trait = "0.1"
 tokio = { version = "1", features = ["sync"] }
 capnp = { version = "0.27", optional = true }
 # The contract and the provider rule (ADR 0045). The generated code is re-exported with feature `contract`.
-fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", tag = "v0.1.0", version = "0.1.0" }
+fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "766f94cdb6b79b779c9e9a84010f1749c15ed7ff", version = "0.2.0" }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
 tempfile = "3"
+# a store owner for the tests (`testing::owner()`, `testing::options()`)
+fs-objects = { git = "https://github.com/FreeSynergy-Net/fs-objects", rev = "f6409f2a5378ba1464e69ae216efd4d27d249182", version = "0.0.11", features = ["testing"] }

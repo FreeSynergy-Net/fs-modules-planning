@@ -36,7 +36,7 @@ async fn a_card_is_moved_through_invoke_with_text_values_only() {
 
             let hello = source.client.hello_request().send().promise.await.unwrap();
             let hello = hello.get().unwrap();
-            assert_eq!(hello.get_level(), fs_interfaces::forms::FORM_SOURCE_LEVEL);
+            assert_eq!(hello.get_level(), fs_modules_planning::LEVEL);
             assert_eq!(hello.get_provider().unwrap().to_str().unwrap(), PROVIDER);
 
             // the other interface answers on the same socket

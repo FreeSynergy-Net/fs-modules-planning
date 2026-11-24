@@ -27,7 +27,7 @@ const CONTRACT_IDS: [&str; 9] = [
     "board.layout",
 ];
 
-const BIN: &str = env!("CARGO_BIN_EXE_fs-modules-planning");
+const BIN: &str = env!("CARGO_BIN_EXE_fs-modules-planning-fixed-owner");
 
 struct Running(Child);
 

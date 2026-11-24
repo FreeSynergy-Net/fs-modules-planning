@@ -77,7 +77,7 @@ impl TaskRepo {
                 object.index.insert(key.into(), values.clone());
             }
         }
-        self.objects.put(object, &self.actor).await?;
+        self.put_one(object).await?;
         Ok(())
     }
 }

@@ -1,4 +1,4 @@
-//! The conformance suite of the contract `module_v1` (crate `fs-module` of fs-interfaces v0.1.0) against the real service
+//! The conformance suite of the contract `module_v1`, level 2 (crate `fs-module` of fs-interfaces v0.2.0) against the real service
 //! (`FormSourceImpl` behind `Planning`) in this process with a temporary store, and the case T21 (move by neighbours, never a number).
 //!
 //! Pattern: Template Method (the rules are the suite's; this file is the fixture: client, declared forms and commands from the
@@ -11,7 +11,7 @@ use common::{board_with, call, field, page, serve};
 use fs_interfaces::formsource_capnp::form_source;
 use fs_module::conformance::run_conformance;
 use fs_module::{
-    CommandKind, DeclaredCommand, DeclaredForm, FormSourceFixture, Param, Sample, Verify,
+    CommandKind, DeclaredCommand, DeclaredForm, FormSourceFixture, Ordered, Param, Sample, Verify,
 };
 use tokio::task::LocalSet;
 
@@ -19,12 +19,21 @@ const FORM: &str = "cards-in-columns@1.2.0";
 
 struct Planning {
     client: form_source::Client,
+    other: form_source::Client,
     uids: Vec<String>,
 }
 
 impl FormSourceFixture for Planning {
     fn client(&self) -> form_source::Client {
         self.client.clone()
+    }
+
+    fn level(&self) -> u32 {
+        fs_modules_planning::LEVEL
+    }
+
+    fn second(&self) -> Option<form_source::Client> {
+        Some(self.other.clone())
     }
 
     fn provider(&self) -> Option<&str> {
@@ -125,6 +134,19 @@ impl FormSourceFixture for Planning {
     fn strict_scope(&self) -> bool {
         true
     }
+
+    fn ordered(&self) -> Option<Ordered> {
+        Some(Ordered {
+            command: "card.move".into(),
+            form: FORM.into(),
+            record: self.uids[2].clone(),
+            neighbour: self.uids[0].clone(),
+            args: vec![
+                ("board".into(), "work".into()),
+                ("column".into(), "todo".into()),
+            ],
+        })
+    }
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -136,16 +158,22 @@ async fn the_suite_of_module_v1_passes_on_the_planning_service() {
             let source = fs_rpc::connect::<form_source::Client>(&socket)
                 .await
                 .unwrap();
+            let other = fs_rpc::connect::<form_source::Client>(&socket)
+                .await
+                .unwrap();
             let uids = board_with(&socket, &source.client, &["a", "b", "c"]).await;
             let fixture = Planning {
                 client: source.client.clone(),
+                other: other.client.clone(),
                 uids,
             };
             let report = run_conformance(&fixture).await;
             assert!(report.failures.is_empty(), "{:#?}", report.failures);
-            // only the rule about a locked record is skipped: the service has no rights per person (see `write.rs`)
+            // only the rules about a locked record (no rights per person, see `write.rs`), a blacked-out change and an image field (there is none) are skipped
             assert!(
-                report.skipped.iter().all(|s| s.starts_with("11 forbidden")),
+                report.skipped.iter().all(|s| s.starts_with("11 forbidden")
+                    || s.starts_with("L2-9 gone")
+                    || s.starts_with("20 blob")),
                 "{:#?}",
                 report.skipped
             );

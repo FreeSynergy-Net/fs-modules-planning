@@ -9,19 +9,25 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use fs_interfaces::common_capnp::cursor;
-use fs_interfaces::forms::{FORM_SOURCE_LEVEL, parse_key};
+use fs_interfaces::forms::parse_key;
 use fs_interfaces::formsource_capnp::{form_source, record_view, value};
-use fs_tasks_core::{BoardEntry, Boards, TaskItems, TaskRepo};
+use fs_tasks_core::{TaskItems, TaskRepo};
 
-use crate::errors::rpc_error;
+use crate::level2::{clash_problem, write_done, write_problem};
+use crate::level2_calls;
 use crate::wire::count;
 use crate::write::{
-    BAD_ARGS, Done, Failure, RECORD_COMMANDS, SET_COMMANDS, UNKNOWN_COMMAND, board_named, boxed,
-    create_task, delete_task, may, move_card, permit, problem,
+    BAD_ARGS, Failure, RECORD_COMMANDS, Ran, SET_COMMANDS, UNKNOWN_COMMAND, boxed, create_task,
+    delete_task, may, move_card, permit, problem,
 };
+use fs_objects::Origin;
 
 /// Who the service says it is in `hello`.
 pub const PROVIDER: &str = "planning";
+
+/// The level of `FormSource` this service speaks (`hello`): 2 = compare-and-set, undo, `introduce`, `changes` and `watch`. It is its OWN number, not
+/// `fs_interfaces::forms::FORM_SOURCE_LEVEL`: levels are cumulative and that constant rises with the host, but this service says what it does.
+pub const LEVEL: u32 = 2;
 
 /// The form this module draws and writes, as `name@x.y.z` (a key of `schema/forms.txt`): `cards-in-columns@1.2.0` has the channels `order`
 /// (read only: the sequence), `after`, `before`, `create` and `remove` and the `writes` of `move`. `catalog/forms.json` declares this version
@@ -36,94 +42,21 @@ const MINORS_SERVED: [u64; 3] = [0, 1, 2];
 /// The most records of one page when the caller names no limit (or a bigger one).
 pub const PAGE_MAX: u32 = 500;
 
-const UNKNOWN_FORM: &str = "form-source-unknown-form";
+pub(crate) const UNKNOWN_FORM: &str = "form-source-unknown-form";
 
 pub(crate) struct FormSourceImpl {
     pub(crate) repo: Arc<TaskRepo>,
+    /// Where the changes of THIS connection come from (`introduce`); one per connection, made by `bootstrap`.
+    pub(crate) origin: crate::level2::Context,
 }
 
 type Reply = Result<(), capnp::Error>;
 
-/// One card of the layout: its board, column, uid and its position in the column (the read-only `order`).
-struct Card {
-    board: String,
-    column: String,
-    label: String,
-    uid: String,
-    at: usize,
-}
-
 /// Whether `form` is a key of the form this module serves: the name, major 1 and a minor of `MINORS_SERVED` (`x.y` and `x.y.z`).
-fn serves(form: &str) -> bool {
+pub(crate) fn serves(form: &str) -> bool {
     parse_key(form).is_some_and(|(name, v)| {
         name == FORM_NAME && v.major == 1 && MINORS_SERVED.contains(&v.minor)
     })
-}
-
-impl FormSourceImpl {
-    /// The cards of the boards in `scope` (empty = every board), in the order of the layout: column by column, as `(board name,
-    /// column id, uid)`. Only the layout is read here; the tasks of one page are read by [`Self::row`].
-    async fn cards(&self, scope: &str) -> capnp::Result<Vec<Card>> {
-        let boards = self.repo.boards().await.map_err(rpc_error)?;
-        let chosen: Vec<&BoardEntry> = if scope.is_empty() {
-            boards.iter().collect()
-        } else {
-            vec![board_named(&boards, scope).map_err(|p| p.into_error())?]
-        };
-        let mut out = Vec::new();
-        for entry in chosen {
-            let layout = self.repo.board_layout(entry.id).await.map_err(rpc_error)?;
-            for column in layout.columns {
-                let (board, id) = (&entry.board.name, &column.column.id);
-                let label = &column.column.name;
-                out.extend(column.cards.into_iter().enumerate().map(|(at, uid)| Card {
-                    board: board.clone(),
-                    column: id.clone(),
-                    label: label.clone(),
-                    uid,
-                    at,
-                }));
-            }
-        }
-        Ok(out)
-    }
-
-    /// The record of one card by the field names of `catalog/forms.json`; `None` when the task is gone in the meantime.
-    async fn row(
-        &self,
-        Card {
-            board,
-            column,
-            label,
-            uid,
-            at,
-        }: &Card,
-    ) -> capnp::Result<Option<Vec<(&'static str, String)>>> {
-        let Some(task) = self.repo.get_by_uid(uid).await.map_err(rpc_error)? else {
-            return Ok(None);
-        };
-        let task = &task.task;
-        let mut row = vec![
-            ("uid", uid.clone()),
-            ("board", board.clone()),
-            ("column", column.clone()),
-            ("title", task.title.clone().unwrap_or_default()),
-            ("index", at.to_string()),
-        ];
-        // RFC 3339 date-time with offset (form art `time`), not the naive JSCalendar LocalDateTime
-        if let Some(due) = self.repo.due_instant(task).map_err(rpc_error)? {
-            row.push(("due", due));
-        }
-        row.push(("column-label", label.clone()));
-        if let Some(percent) = task.percent_complete {
-            row.push(("percent", percent.to_string()));
-        }
-        if let Some(progress) = &task.progress {
-            row.push(("progress", progress.clone()));
-        }
-        row.extend(crate::facts::of(task));
-        Ok(Some(row))
-    }
 }
 
 impl form_source::Server for FormSourceImpl {
@@ -133,7 +66,7 @@ impl form_source::Server for FormSourceImpl {
         mut results: form_source::HelloResults,
     ) -> Reply {
         let mut out = results.get();
-        out.set_level(FORM_SOURCE_LEVEL);
+        out.set_level(LEVEL);
         out.set_provider(PROVIDER);
         Ok(())
     }
@@ -212,36 +145,91 @@ impl form_source::Server for FormSourceImpl {
         let p = params.get()?;
         let command = p.get_command()?.to_string()?;
         let record = p.get_record()?.to_string()?;
-        let result = self.run(&command, record, p.get_args()?).await;
+        // level 1: no expectation and no step
+        let result = self.run(&command, record, p.get_args()?, None, None).await;
         let mut out = results.get();
         match result {
-            Ok(done) => {
-                let mut made = out.init_result();
-                made.set_record(done.record.as_str());
-                made.set_text(done.text);
+            Ok(Ran::Done(done)) => {
+                let seen = level2_calls::head_seen(&self, &done).await;
+                write_done(out.init_result(), &done, &seen);
+            }
+            Ok(Ran::Clash(..)) => {
+                out.set_failed(true);
+                write_problem(out.init_problem(), &clash_problem());
             }
             Err(why) => {
                 out.set_failed(true);
-                why.write(out.init_problem());
+                write_problem(out.init_problem(), &why);
             }
         }
         Ok(())
     }
+
+    async fn invoke_if(
+        self: Rc<Self>,
+        params: form_source::InvokeIfParams,
+        results: form_source::InvokeIfResults,
+    ) -> Reply {
+        level2_calls::invoke_if(&self, params, results).await
+    }
+
+    async fn revert(
+        self: Rc<Self>,
+        params: form_source::RevertParams,
+        results: form_source::RevertResults,
+    ) -> Reply {
+        level2_calls::revert(&self, params, results).await
+    }
+
+    async fn changes(
+        self: Rc<Self>,
+        params: form_source::ChangesParams,
+        results: form_source::ChangesResults,
+    ) -> Reply {
+        level2_calls::changes(&self, params, results).await
+    }
+
+    async fn introduce(
+        self: Rc<Self>,
+        params: form_source::IntroduceParams,
+        _: form_source::IntroduceResults,
+    ) -> Reply {
+        let p = params.get()?;
+        let origin = Origin::new(
+            p.get_program()?.to_string()?,
+            p.get_instance()?.to_string()?,
+            p.get_device()?.to_string()?,
+        );
+        *self.origin.borrow_mut() = origin;
+        Ok(())
+    }
+
+    async fn watch(
+        self: Rc<Self>,
+        params: form_source::WatchParams,
+        results: form_source::WatchResults,
+    ) -> Reply {
+        level2_calls::watch(&self, params, results).await
+    }
 }
 
 impl FormSourceImpl {
-    /// One command by the capability key of the contract: known and possible first, then its arguments.
-    async fn run(
+    /// One command by the capability key of the contract: known and possible first, then its arguments. `expect` is the `rev` of
+    /// the record the caller saw, `step` the (run, step) that makes a repeat act once; the writes carry the origin of the connection.
+    pub(crate) async fn run(
         &self,
         command: &str,
         record: String,
         args: capnp::struct_list::Reader<'_, value::Owned>,
-    ) -> Result<Done, Failure> {
+        expect: Option<u64>,
+        step: Option<(String, String)>,
+    ) -> Result<Ran, Failure> {
         permit(&self.repo.capabilities(), command)?;
+        let repo = self.handle(step.as_ref());
         match command {
-            "card.move" => move_card(&self.repo, record, args).await,
-            "task.create" => create_task(&self.repo, &record, args).await,
-            "task.delete" => delete_task(&self.repo, &record, args).await,
+            "card.move" => move_card(&repo, record, args, expect).await,
+            "task.create" => create_task(&repo, &record, args).await,
+            "task.delete" => delete_task(&repo, &record, args, expect).await,
             other => Err(boxed(UNKNOWN_COMMAND, format!("no command {other:?}"), 404)),
         }
     }
@@ -253,7 +241,7 @@ fn set_may(mut out: capnp::text_list::Builder<'_>, keys: &[&str]) {
     }
 }
 
-fn read_offset(c: cursor::Reader<'_>) -> capnp::Result<usize> {
+pub(crate) fn read_offset(c: cursor::Reader<'_>) -> capnp::Result<usize> {
     let bytes = c.get_opaque()?;
     if bytes.is_empty() {
         return Ok(0);

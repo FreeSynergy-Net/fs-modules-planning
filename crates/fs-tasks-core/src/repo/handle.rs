@@ -7,7 +7,7 @@
 use std::sync::Arc;
 
 use fs_objects::traits::{ObjectQuery, ObjectRepository};
-use fs_objects::{Store, StoreInfo};
+use fs_objects::{By, PersonRef, Store, StoreInfo};
 
 use super::backend::StoreAdapter;
 use crate::interface::Registry;
@@ -20,7 +20,10 @@ pub struct TaskRepo {
     pub(crate) queries: Arc<dyn ObjectQuery>,
     pub(crate) info: Option<Arc<dyn StoreInfo>>,
     pub(crate) feed: Arc<Registry>,
-    pub(crate) actor: String,
+    /// Who writes, for whom, from where and in which step: every write of this handle goes through it (`write_by`).
+    pub(crate) by: By,
+    /// The whole store, where there is one: undo, the log of changes and the change stream need more than the narrow traits.
+    pub(crate) store: Option<Arc<dyn Store>>,
     pub(crate) instance: String,
     pub(crate) floating: Zone,
     /// One write flow at a time: each reads, decides and writes, and a backend may yield in between.
@@ -42,11 +45,14 @@ pub struct TaskRepo {
 }
 
 impl TaskRepo {
-    /// Tasks over a whole [`Store`]. `actor` is the IRI of the acting person / program
-    /// (written to the log).
-    pub fn new(store: Arc<dyn Store>, actor: impl Into<String>) -> Self {
-        let adapter = Arc::new(StoreAdapter(store));
-        Self::with_backend(adapter.clone(), adapter.clone(), actor).with_info(adapter)
+    /// Tasks over a whole [`Store`]. `actor` is the IRI of the acting person / program (written to the log), `owner` the
+    /// owner of the store (the objects written belong to it; the store refuses another one).
+    pub fn new(store: Arc<dyn Store>, actor: impl Into<String>, owner: PersonRef) -> Self {
+        let adapter = Arc::new(StoreAdapter(store.clone()));
+        let mut repo =
+            Self::with_backend(adapter.clone(), adapter.clone(), actor, owner).with_info(adapter);
+        repo.store = Some(store);
+        repo
     }
 
     /// Tasks over the narrow store traits only (a remote or fake backend can supply them).
@@ -54,13 +60,15 @@ impl TaskRepo {
         objects: Arc<dyn ObjectRepository>,
         queries: Arc<dyn ObjectQuery>,
         actor: impl Into<String>,
+        owner: PersonRef,
     ) -> Self {
         Self {
             objects,
             queries,
             info: None,
             feed: Arc::default(),
-            actor: actor.into(),
+            by: By::new(actor, owner),
+            store: None,
             instance: "local.invalid".into(),
             floating: Zone::Utc,
             writes: Arc::default(),
@@ -78,10 +86,9 @@ impl TaskRepo {
     /// The store, the write turn and the subscribers stay shared.
     #[must_use]
     pub fn as_actor(&self, actor: impl Into<String>) -> Self {
-        Self {
-            actor: actor.into(),
-            ..self.clone()
-        }
+        let mut by = self.by.clone();
+        by.actor = actor.into();
+        Self { by, ..self.clone() }
     }
 
     /// How many tasks a scan reads per query (default 1000); a small value is for tests of the scan itself.

@@ -17,7 +17,7 @@ const CONTENT_TYPE: &str = "application/vnd.freesynergy.board+json";
 /// Most boards a store holds.
 const MAX_BOARDS: usize = 1000;
 
-fn read(object: StoredObject) -> Result<BoardEntry> {
+pub(super) fn read(object: StoredObject) -> Result<BoardEntry> {
     let board: Board = serde_json::from_value(object.content)
         .map_err(|e| Error::Stored(format!("board {}: {e}", object.envelope.id)))?;
     Ok(BoardEntry {
@@ -35,7 +35,7 @@ fn checked(board: &Board) -> Result<()> {
 }
 
 impl TaskRepo {
-    async fn board_object(&self, id: ObjectId) -> Result<Option<StoredObject>> {
+    pub(super) async fn board_object(&self, id: ObjectId) -> Result<Option<StoredObject>> {
         Ok(self
             .objects
             .get(id)
@@ -64,11 +64,11 @@ impl TaskRepo {
         let mut env = Envelope::new(BOARD_TYPE, board.name.clone());
         env.iri = Some(format!("https://{}/boards/{}", self.instance, env.id));
         env.context = Some(CONTEXT.into());
-        env.attributed_to = Some(self.actor.clone());
-        env.to = vec![self.actor.clone()];
+        env.attributed_to = Some(self.by.actor.clone());
+        env.to = vec![self.by.actor.clone()];
         let object = StoredObject::new(env, CONTENT_TYPE, serde_json::to_value(&board)?);
         let id = object.envelope.id;
-        self.objects.put(object, &self.actor).await?;
+        self.put_one(object).await?;
         read(self.board_object(id).await?.ok_or(Error::NotFound(id))?)
     }
 
@@ -97,17 +97,23 @@ impl TaskRepo {
         Ok(all)
     }
 
+    /// The stored object `object` with the content of `board` (checked), ready to be written.
+    pub(super) fn board_put(mut object: StoredObject, board: &Board) -> Result<StoredObject> {
+        checked(board)?;
+        object.envelope.name.clone_from(&board.name);
+        object.content = serde_json::to_value(board)?;
+        Ok(object)
+    }
+
     /// Replace the board with `board` as the caller holds the write turn, after `change` was applied to what is stored.
     async fn write_board(
         &self,
         id: ObjectId,
-        mut object: StoredObject,
+        object: StoredObject,
         board: &Board,
     ) -> Result<BoardEntry> {
-        checked(board)?;
-        object.envelope.name = board.name.clone();
-        object.content = serde_json::to_value(board)?;
-        self.objects.put(object, &self.actor).await?;
+        let object = Self::board_put(object, board)?;
+        self.put_one(object).await?;
         read(self.board_object(id).await?.ok_or(Error::NotFound(id))?)
     }
 
@@ -144,7 +150,7 @@ impl TaskRepo {
     pub(super) async fn board_delete_inner(&self, id: ObjectId) -> Result<()> {
         let _one_at_a_time = self.writes.lock().await;
         self.board_object(id).await?.ok_or(Error::NotFound(id))?;
-        self.objects.delete(id, &self.actor).await?;
+        self.objects.delete(id, &self.by.actor).await?;
         Ok(())
     }
 

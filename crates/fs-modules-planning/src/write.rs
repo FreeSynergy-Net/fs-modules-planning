@@ -12,6 +12,7 @@
 
 use fs_interfaces::Capabilities;
 use fs_interfaces::formsource_capnp::value;
+use fs_objects::{Activity, Outcome};
 use fs_rpc::{Problem, run_to_end};
 use fs_tasks_core::{BoardEntry, Boards, Error, TaskEntry, TaskItems, TaskRepo};
 
@@ -37,16 +38,55 @@ pub(crate) const SET_COMMANDS: [&str; 1] = ["task.create"];
 const MOVE_ARGS: [&str; 4] = ["board", "column", "after", "before"];
 const CREATE_ARGS: [&str; 5] = ["board", "column", "title", "after", "before"];
 
-/// What a command made or changed: the record (empty for a delete) and a short code for people.
+/// What a command made or changed: the record (empty for a delete), a short code for people, and the head of the unit of change it wrote.
 pub(crate) struct Done {
     pub(crate) record: String,
     pub(crate) text: &'static str,
+    pub(crate) head: Option<Box<Activity>>,
+}
+
+/// What a command came to: it was done, or the `expect` of the caller did not match (nothing was written): the last change of the
+/// record and the paths that changed.
+pub(crate) enum Ran {
+    Done(Done),
+    Clash(Box<Activity>, Vec<String>),
+}
+
+impl Ran {
+    /// The answer of the store for the command `record`/`text`; a unit that is gone or cannot be taken back is a refusal.
+    fn of(outcome: Outcome, record: String, text: &'static str) -> Result<Self, Failure> {
+        match outcome {
+            Outcome::Done(done) => Ok(Self::Done(Done {
+                record,
+                text,
+                head: Some(Box::new(done.head)),
+            })),
+            Outcome::Conflict { by, fields } => Ok(Self::Clash(
+                by,
+                fields.into_iter().map(|f| f.path).collect(),
+            )),
+            Outcome::NotRevertible(why) => Err(boxed(REJECTED, why, 422)),
+            _ => Err(boxed(UNKNOWN_RECORD, "the record is gone", 404)),
+        }
+    }
 }
 
 pub(crate) type Failure = Box<Problem>;
 
+/// The title is text for people made from the kind (`form-source-unknown-command` is "Unknown command"), never the kind itself.
+fn title_of(kind: &str) -> String {
+    let words = kind
+        .strip_prefix("form-source-")
+        .unwrap_or(kind)
+        .replace('-', " ");
+    let mut chars = words.chars();
+    chars.next().map_or_else(String::new, |first| {
+        first.to_uppercase().chain(chars).collect()
+    })
+}
+
 pub(crate) fn problem(kind: &str, detail: impl Into<String>, status: u16) -> Problem {
-    Problem::new(kind, kind, detail, status)
+    Problem::new(kind, title_of(kind), detail, status)
 }
 
 pub(crate) fn boxed(kind: &str, detail: impl Into<String>, status: u16) -> Failure {
@@ -115,7 +155,8 @@ pub(crate) async fn move_card(
     repo: &TaskRepo,
     uid: String,
     args: capnp::struct_list::Reader<'_, value::Owned>,
-) -> Result<Done, Failure> {
+    expect: Option<u64>,
+) -> Result<Ran, Failure> {
     let mut got = text_args(args, &MOVE_ARGS)?;
     check_uid(&uid)?;
     let (board, column) = (take(&mut got, "board")?, take(&mut got, "column")?);
@@ -127,24 +168,14 @@ pub(crate) async fn move_card(
     let id = board_named(&boards, &board)?.id;
     task_of(repo, &uid).await?;
     let (repo, moved) = (repo.clone(), uid.clone());
-    run_to_end(async move {
-        place(
-            &repo,
-            id,
-            &moved,
-            &column,
-            after.as_deref(),
-            before.as_deref(),
-        )
-        .await
+    let outcome = run_to_end(async move {
+        let near = (after.as_deref(), before.as_deref());
+        place(&repo, id, &moved, &column, near, expect).await
     })
     .await
     .map_err(|e| boxed(INTERNAL, e.to_string(), 500))?
     .map_err(to_problem)?;
-    Ok(Done {
-        record: uid,
-        text: "card-moved",
-    })
+    Ran::of(outcome, uid, "card-moved")
 }
 
 /// `task.create`: a task with `title`, put into `column` of `board` between `after` and `before` (none = the end). Board and column are checked before
@@ -154,7 +185,7 @@ pub(crate) async fn create_task(
     repo: &TaskRepo,
     record: &str,
     args: capnp::struct_list::Reader<'_, value::Owned>,
-) -> Result<Done, Failure> {
+) -> Result<Ran, Failure> {
     let mut got = text_args(args, &CREATE_ARGS)?;
     if !record.is_empty() {
         return Err(boxed(
@@ -201,24 +232,14 @@ pub(crate) async fn create_task(
         return Err(to_problem(Error::Rejected(format!("no column {column:?}"))));
     }
     let (id, repo) = (entry.id, repo.clone());
-    let uid = run_to_end(async move {
-        create_placed(
-            &repo,
-            id,
-            title,
-            &column,
-            after.as_deref(),
-            before.as_deref(),
-        )
-        .await
+    let (uid, outcome) = run_to_end(async move {
+        let near = (after.as_deref(), before.as_deref());
+        create_placed(&repo, id, title, &column, near).await
     })
     .await
     .map_err(|e| boxed(INTERNAL, e.to_string(), 500))?
     .map_err(to_problem)?;
-    Ok(Done {
-        record: uid,
-        text: "task-created",
-    })
+    Ran::of(outcome, uid, "task-created")
 }
 
 /// `task.delete`: the task `uid` and nothing else; it takes no argument.
@@ -226,18 +247,16 @@ pub(crate) async fn delete_task(
     repo: &TaskRepo,
     uid: &str,
     args: capnp::struct_list::Reader<'_, value::Owned>,
-) -> Result<Done, Failure> {
+    expect: Option<u64>,
+) -> Result<Ran, Failure> {
     text_args(args, &[])?;
     let id = task_of(repo, uid).await?.id;
     let repo = repo.clone();
-    run_to_end(async move { repo.delete(id).await })
+    let outcome = run_to_end(async move { repo.delete_checked(id, expect).await })
         .await
         .map_err(|e| boxed(INTERNAL, e.to_string(), 500))?
         .map_err(to_problem)?;
-    Ok(Done {
-        record: String::new(),
-        text: "task-deleted",
-    })
+    Ran::of(outcome, String::new(), "task-deleted")
 }
 
 /// A core error as the problem the caller can tell apart: a refusal (rejected, conflict, no such record) is not a break of the module.

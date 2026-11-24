@@ -9,7 +9,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use fs_objects::traits::{ObjectQuery, ObjectRepository};
 use fs_objects::{
-    Activity, LogEntry, ObjectId, Query, Result, Store, StoreId, StoreInfo, StoredObject,
+    Activity, By, LogEntry, ObjectId, Outcome, Query, Result, Store, StoreId, StoreInfo,
+    StoredObject, Write,
 };
 
 /// Presents an `Arc<dyn Store>` as the narrow traits.
@@ -28,6 +29,10 @@ impl ObjectRepository for StoreAdapter {
         extra: Vec<LogEntry>,
     ) -> Result<Vec<Activity>> {
         Store::put_and_log(&*self.0, object, actor, extra).await
+    }
+
+    async fn write_by(&self, by: &By, writes: Vec<Write>) -> Result<Outcome> {
+        Store::write_by(&*self.0, by, writes).await
     }
 
     async fn get(&self, id: ObjectId) -> Result<Option<StoredObject>> {

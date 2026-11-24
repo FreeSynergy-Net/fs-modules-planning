@@ -5,15 +5,26 @@ use std::sync::Arc;
 
 use fs_interfaces::common_capnp::cursor;
 use fs_interfaces::formsource_capnp::form_source;
+use fs_interfaces::owner::LocalOwner as _;
+use fs_interfaces::owner::fake::FixedOwner;
 use fs_modules_planning::Planning;
 use fs_objects::{Store, TursoStore};
 use fs_tasks_core::TaskRepo;
 use tokio::sync::oneshot;
 
 pub async fn serve(dir: &std::path::Path) -> (std::path::PathBuf, oneshot::Sender<()>) {
-    let store = TursoStore::open(dir.join("objects.db")).await.unwrap();
+    // the owner of the store comes from the source of the owner, as in `serve`
+    let owner = FixedOwner(fs_objects::testing::owner()).owner().unwrap();
+    let options = fs_objects::OpenOptions::default().with_owner(owner.clone());
+    let store = TursoStore::open_with(dir.join("objects.db"), options)
+        .await
+        .unwrap();
     let store: Arc<dyn Store> = Arc::new(store);
-    let repo = Arc::new(TaskRepo::new(store, "https://local.invalid/users/owner"));
+    let repo = Arc::new(TaskRepo::new(
+        store,
+        "https://local.invalid/users/owner",
+        owner,
+    ));
     let socket = dir.join("planning.sock");
     let bound = fs_rpc::bind_socket(&socket).await.unwrap();
     let (stop, stopped) = oneshot::channel::<()>();

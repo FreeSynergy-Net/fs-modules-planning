@@ -26,7 +26,7 @@ impl ObjectQuery for Editing {
     async fn query(&self, q: &Query) -> fs_objects::Result<Vec<StoredObject>> {
         let found = self.store.query(q).await?;
         if self.calls.fetch_add(1, Ordering::SeqCst) == 2 {
-            let repo = TaskRepo::new(self.store.clone(), ME);
+            let repo = TaskRepo::new(self.store.clone(), ME, fs_objects::testing::owner());
             if self.create_small_id {
                 let mut t = Task::new("early");
                 t.uid = "urn:uuid:00000000-0000-7000-8000-000000000001".into();
@@ -47,8 +47,12 @@ impl ObjectQuery for Editing {
 
 #[tokio::test]
 async fn an_edit_during_the_scan_changes_nothing_about_who_is_in_it() {
-    let store: Arc<dyn Store> = Arc::new(TursoStore::open_in_memory().await.unwrap());
-    let plain = TaskRepo::new(store.clone(), ME);
+    let store: Arc<dyn Store> = Arc::new(
+        TursoStore::open_with(":memory:", fs_objects::testing::options())
+            .await
+            .unwrap(),
+    );
+    let plain = TaskRepo::new(store.clone(), ME, fs_objects::testing::owner());
     for i in 0..30 {
         let mut t = Task::new(format!("t{i}"));
         t.uid = format!("t{i}");
@@ -64,6 +68,7 @@ async fn an_edit_during_the_scan_changes_nothing_about_who_is_in_it() {
             create_small_id: false,
         }),
         ME,
+        fs_objects::testing::owner(),
     )
     .with_scan_chunk(7);
     // every task is ready (no relations): the page walks the scan, which reads 7 at a time
@@ -86,8 +91,12 @@ async fn an_edit_during_the_scan_changes_nothing_about_who_is_in_it() {
 /// "tasks without an id key"); it is stored later than the others, so it comes at the end of the scan.
 #[tokio::test]
 async fn a_task_created_during_the_scan_with_a_smaller_id_is_no_error() {
-    let store: Arc<dyn Store> = Arc::new(TursoStore::open_in_memory().await.unwrap());
-    let plain = TaskRepo::new(store.clone(), ME);
+    let store: Arc<dyn Store> = Arc::new(
+        TursoStore::open_with(":memory:", fs_objects::testing::options())
+            .await
+            .unwrap(),
+    );
+    let plain = TaskRepo::new(store.clone(), ME, fs_objects::testing::owner());
     for i in 0..30 {
         let mut t = Task::new(format!("t{i}"));
         t.uid = format!("t{i}");
@@ -102,6 +111,7 @@ async fn a_task_created_during_the_scan_with_a_smaller_id_is_no_error() {
             create_small_id: true,
         }),
         ME,
+        fs_objects::testing::owner(),
     )
     .with_scan_chunk(7);
     let page = watched
@@ -129,6 +139,13 @@ impl ObjectRepository for StoreObjects {
         extra: Vec<fs_objects::LogEntry>,
     ) -> fs_objects::Result<Vec<fs_objects::Activity>> {
         self.0.put_and_log(o, actor, extra).await
+    }
+    async fn write_by(
+        &self,
+        by: &fs_objects::By,
+        writes: Vec<fs_objects::Write>,
+    ) -> fs_objects::Result<fs_objects::Outcome> {
+        self.0.write_by(by, writes).await
     }
     async fn get(&self, id: fs_objects::ObjectId) -> fs_objects::Result<Option<StoredObject>> {
         self.0.get(id).await

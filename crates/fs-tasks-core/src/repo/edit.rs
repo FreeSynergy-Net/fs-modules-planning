@@ -27,7 +27,7 @@ impl TaskRepo {
         if let Some(v) = old_stored.index.get("tzdb_version") {
             o.index.insert("tzdb_version".into(), v.clone());
         }
-        self.objects.put(o, &self.actor).await?;
+        self.put_one(o).await?;
         self.feed.notify(&TaskChange::Updated(id));
         let entry = self.entry(id).await?.ok_or(Error::NotFound(id))?;
         // Who is ready now because this edit freed it (the task started or was completed, gave up an edge it held, or

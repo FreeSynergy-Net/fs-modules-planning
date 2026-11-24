@@ -34,11 +34,18 @@ impl Drop for Service {
 /// Start a service on a fresh store; must run inside a `LocalSet`.
 pub async fn start() -> Service {
     let dir = tempfile::Builder::new().prefix("pl").tempdir().unwrap();
-    let store = TursoStore::open(dir.path().join("objects.db"))
-        .await
-        .unwrap();
+    let store = TursoStore::open_with(
+        dir.path().join("objects.db"),
+        fs_objects::testing::options(),
+    )
+    .await
+    .unwrap();
     let store: Arc<dyn Store> = Arc::new(store);
-    let repo = Arc::new(TaskRepo::new(store, STORE_ACTOR));
+    let repo = Arc::new(TaskRepo::new(
+        store,
+        STORE_ACTOR,
+        fs_objects::testing::owner(),
+    ));
     let socket = dir.path().join("planning.sock");
     let bound = fs_rpc::bind_socket(&socket).await.unwrap();
     let (stop, stopped) = oneshot::channel::<()>();

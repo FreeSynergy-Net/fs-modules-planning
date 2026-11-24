@@ -40,6 +40,13 @@ impl ObjectRepository for Plain {
     ) -> fs_objects::Result<Vec<fs_objects::Activity>> {
         self.0.put_and_log(o, a, e).await
     }
+    async fn write_by(
+        &self,
+        by: &fs_objects::By,
+        writes: Vec<fs_objects::Write>,
+    ) -> fs_objects::Result<fs_objects::Outcome> {
+        self.0.write_by(by, writes).await
+    }
     async fn get(&self, id: fs_objects::ObjectId) -> fs_objects::Result<Option<StoredObject>> {
         self.0.get(id).await
     }
@@ -54,8 +61,12 @@ impl ObjectRepository for Plain {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn another_write_does_not_wait_for_the_judgement_of_a_change() {
-    let store: Arc<dyn Store> = Arc::new(TursoStore::open_in_memory().await.unwrap());
-    let fast = TaskRepo::new(store.clone(), ME);
+    let store: Arc<dyn Store> = Arc::new(
+        TursoStore::open_with(":memory:", fs_objects::testing::options())
+            .await
+            .unwrap(),
+    );
+    let fast = TaskRepo::new(store.clone(), ME, fs_objects::testing::owner());
     let mut head_id = None;
     for i in 0..6 {
         let mut t = Task::new(format!("t{i}"));
@@ -70,6 +81,7 @@ async fn another_write_does_not_wait_for_the_judgement_of_a_change() {
         Arc::new(Plain(store.clone())),
         Arc::new(Slow(store, Duration::from_millis(60))),
         ME,
+        fs_objects::testing::owner(),
     );
     let head = slow.get(head_id.unwrap()).await.unwrap().unwrap();
     let started = Instant::now();
@@ -109,8 +121,12 @@ impl ObjectQuery for Counting {
 /// those reads the graph (a new task in front of a long chain is not made to scan it).
 #[tokio::test]
 async fn only_a_change_that_can_free_somebody_is_judged() {
-    let store: Arc<dyn Store> = Arc::new(TursoStore::open_in_memory().await.unwrap());
-    let plain = TaskRepo::new(store.clone(), ME);
+    let store: Arc<dyn Store> = Arc::new(
+        TursoStore::open_with(":memory:", fs_objects::testing::options())
+            .await
+            .unwrap(),
+    );
+    let plain = TaskRepo::new(store.clone(), ME, fs_objects::testing::owner());
     let mut ids = Vec::new();
     for i in 0..4 {
         let mut t = Task::new(format!("t{i}"));
@@ -123,6 +139,7 @@ async fn only_a_change_that_can_free_somebody_is_judged() {
         Arc::new(Plain(store.clone())),
         Arc::new(Counting(store, queries.clone())),
         ME,
+        fs_objects::testing::owner(),
     );
     let used = |f: &std::sync::atomic::AtomicUsize| f.swap(0, std::sync::atomic::Ordering::SeqCst);
     // adding a relation: the check for a cycle asks a few things, nothing is judged

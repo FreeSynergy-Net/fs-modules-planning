@@ -34,6 +34,14 @@ impl ObjectRepository for Yielding {
         pause().await;
         self.0.put_and_log(object, actor, extra).await
     }
+    async fn write_by(
+        &self,
+        by: &fs_objects::By,
+        writes: Vec<fs_objects::Write>,
+    ) -> fs_objects::Result<fs_objects::Outcome> {
+        pause().await;
+        self.0.write_by(by, writes).await
+    }
     async fn get(&self, id: ObjectId) -> StoreResult<Option<StoredObject>> {
         pause().await;
         self.0.get(id).await
@@ -58,9 +66,18 @@ impl ObjectQuery for Yielding {
 
 /// A repository over that backend.
 pub async fn yielding_repo() -> TaskRepo {
-    let store: Arc<dyn Store> = Arc::new(TursoStore::open_in_memory().await.unwrap());
+    let store: Arc<dyn Store> = Arc::new(
+        TursoStore::open_with(":memory:", fs_objects::testing::options())
+            .await
+            .unwrap(),
+    );
     let backend = Arc::new(Yielding(store));
-    TaskRepo::with_backend(backend.clone(), backend, super::ME)
+    TaskRepo::with_backend(
+        backend.clone(),
+        backend,
+        super::ME,
+        fs_objects::testing::owner(),
+    )
 }
 
 /// Run all of these at once and collect what they answer.

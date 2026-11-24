@@ -20,8 +20,15 @@ fn copy_fixture(to: &Path) -> std::path::PathBuf {
 }
 
 async fn open(path: &Path) -> (TaskRepo, Arc<dyn Store>) {
-    let store: Arc<dyn Store> = Arc::new(TursoStore::open(path).await.unwrap());
-    (TaskRepo::new(store.clone(), ME), store)
+    let store: Arc<dyn Store> = Arc::new(
+        TursoStore::open_with(path, fs_objects::testing::options())
+            .await
+            .unwrap(),
+    );
+    (
+        TaskRepo::new(store.clone(), ME, fs_objects::testing::owner()),
+        store,
+    )
 }
 
 async fn paged(repo: &TaskRepo, query: &TaskQuery, size: usize) -> Vec<String> {

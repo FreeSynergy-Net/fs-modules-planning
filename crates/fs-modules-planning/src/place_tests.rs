@@ -21,11 +21,18 @@ struct Fixture {
 /// A board `work` (standard columns todo/doing/done) and the tasks `titles`, all unplaced (they stand in `todo` by their progress).
 async fn fixture(titles: &[&str]) -> Fixture {
     let dir = tempfile::Builder::new().prefix("fs").tempdir().unwrap();
-    let store = TursoStore::open(dir.path().join("objects.db"))
-        .await
-        .unwrap();
+    let store = TursoStore::open_with(
+        dir.path().join("objects.db"),
+        fs_objects::testing::options(),
+    )
+    .await
+    .unwrap();
     let store: Arc<dyn Store> = Arc::new(store);
-    let repo = TaskRepo::new(store, "https://local.invalid/users/owner");
+    let repo = TaskRepo::new(
+        store,
+        "https://local.invalid/users/owner",
+        fs_objects::testing::owner(),
+    );
     let board = repo.board_create("work", None).await.unwrap().id;
     let mut uids = Vec::new();
     for t in titles {
@@ -67,9 +74,16 @@ async fn a_move_gives_a_place_only_to_the_cards_before_it_and_the_others_keep_th
     let f = fixture(&["a", "b", "c", "d"]).await;
     let u = &f.uids;
     // d between a and b: a (before the place) and d get a place; b and c are not written
-    place(&f.repo, f.board, &u[3], "todo", Some(&u[0]), Some(&u[1]))
-        .await
-        .unwrap();
+    place(
+        &f.repo,
+        f.board,
+        &u[3],
+        "todo",
+        (Some(&u[0]), Some(&u[1])),
+        None,
+    )
+    .await
+    .unwrap();
     assert_eq!(shown(&f).await, ["todo/a", "todo/d", "todo/b", "todo/c"]);
     let board = f.repo.board_get(f.board).await.unwrap().unwrap().board;
     assert_eq!(board.order()["todo"], [u[0].clone(), u[3].clone()]);
@@ -94,8 +108,8 @@ async fn a_move_to_another_column_leaves_the_untouched_columns_to_their_progress
         f.board,
         &f.uids[0],
         "doing",
+        (None, Some(&f.uids[2])),
         None,
-        Some(&f.uids[2]),
     )
     .await
     .unwrap();
@@ -109,15 +123,15 @@ async fn a_move_to_another_column_leaves_the_untouched_columns_to_their_progress
 async fn the_end_and_the_top_need_one_neighbour_and_a_gone_neighbour_does_not_refuse() {
     let f = fixture(&["a", "b", "c"]).await;
     let u = &f.uids;
-    place(&f.repo, f.board, &u[0], "todo", Some(&u[2]), None)
+    place(&f.repo, f.board, &u[0], "todo", (Some(&u[2]), None), None)
         .await
         .unwrap();
     assert_eq!(shown(&f).await, ["todo/b", "todo/c", "todo/a"]);
-    place(&f.repo, f.board, &u[1], "todo", Some("gone"), None)
+    place(&f.repo, f.board, &u[1], "todo", (Some("gone"), None), None)
         .await
         .unwrap();
     assert_eq!(shown(&f).await, ["todo/c", "todo/a", "todo/b"]);
-    place(&f.repo, f.board, &u[1], "todo", None, Some(&u[2]))
+    place(&f.repo, f.board, &u[1], "todo", (None, Some(&u[2])), None)
         .await
         .unwrap();
     assert_eq!(shown(&f).await, ["todo/b", "todo/c", "todo/a"]);
@@ -128,26 +142,25 @@ async fn a_failed_placing_of_a_new_task_takes_the_task_back() {
     let f = fixture(&["a"]).await;
     let before = f.repo.list().await.unwrap().len();
     // a column that is not there (removed in the meantime): the placing is refused after the task was made
-    let e = create_placed(&f.repo, f.board, "new".into(), "nowhere", None, None)
+    let e = create_placed(&f.repo, f.board, "new".into(), "nowhere", (None, None))
         .await
         .unwrap_err();
     assert!(e.to_string().contains("nowhere"), "{e}");
     assert_eq!(f.repo.list().await.unwrap().len(), before);
     // a board that vanished in the meantime
     f.repo.board_delete(f.board).await.unwrap();
-    create_placed(&f.repo, f.board, "new".into(), "todo", None, None)
+    create_placed(&f.repo, f.board, "new".into(), "todo", (None, None))
         .await
         .unwrap_err();
     assert_eq!(f.repo.list().await.unwrap().len(), before);
     // the retry that works makes it once
     let g = fixture(&["a"]).await;
-    let uid = create_placed(
+    let (uid, _) = create_placed(
         &g.repo,
         g.board,
         "new".into(),
         "todo",
-        None,
-        Some(&g.uids[0]),
+        (None, Some(&g.uids[0])),
     )
     .await
     .unwrap();

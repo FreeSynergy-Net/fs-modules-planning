@@ -5,10 +5,11 @@
 //! lives in `$XDG_DATA_HOME/freesynergy/modules/planning/` (0700). Returns the exit code.
 
 use std::ffi::OsString;
-use std::io;
+use std::io::{self, Write};
 use std::sync::Arc;
 
-use fs_objects::{Store, TursoStore};
+use fs_interfaces::owner::LocalOwner;
+use fs_objects::{OpenOptions, Store, TursoStore};
 use fs_rpc::{
     ServerIdentity, ServerOptions, default_data_dir, prepare_data_dir, run_until_signal_callers,
 };
@@ -41,9 +42,21 @@ fn words(args: impl IntoIterator<Item = OsString>) -> Vec<OsString> {
     args
 }
 
-/// Run the server with `args`; the exit code: 0 after a signal or `--help`, 2 for a mistake in the words, 1 when serving failed.
+/// Run the server with `args` for the person `owner` names (read once, before anything is bound or opened); the exit code: 0 after a
+/// signal or `--help`, 2 for a mistake in the words, 1 when there is no owner or serving failed. The owner is the owner of the store:
+/// every object written belongs to it, and a store of another owner is not opened.
 #[must_use]
-pub fn serve_command(args: impl IntoIterator<Item = OsString>) -> i32 {
+pub fn serve_command(args: impl IntoIterator<Item = OsString>, owner: &dyn LocalOwner) -> i32 {
+    serve_with(args, owner, &mut io::stderr())
+}
+
+/// [`serve_command`] with the words for the person written to `err` (a test reads them).
+#[must_use]
+pub fn serve_with(
+    args: impl IntoIterator<Item = OsString>,
+    owner: &dyn LocalOwner,
+    err: &mut dyn Write,
+) -> i32 {
     let options = match ServerOptions::parse(PROGRAM, words(args)) {
         Ok(Some(options)) => options,
         Ok(None) => {
@@ -51,8 +64,16 @@ pub fn serve_command(args: impl IntoIterator<Item = OsString>) -> i32 {
             return 0;
         }
         Err(problem) => {
-            eprintln!("fs-modules-planning: {problem}");
+            let _ = writeln!(err, "fs-modules-planning: {problem}");
             return 2;
+        }
+    };
+    // Without a "me" the service does not start: there is no anonymous owner and no placeholder.
+    let owner = match owner.owner() {
+        Ok(owner) => owner,
+        Err(why) => {
+            let _ = writeln!(err, "fs-modules-planning: {why}");
+            return 1;
         }
     };
     let ServerOptions {
@@ -66,12 +87,15 @@ pub fn serve_command(args: impl IntoIterator<Item = OsString>) -> i32 {
     let identity = ServerIdentity::new("fs-modules-planning", env!("CARGO_PKG_VERSION"));
     let served = run_until_signal_callers(&socket, identity, || async move {
         let data = prepare_data_dir(&data)?;
-        let store = TursoStore::open(data.join("objects.db"))
-            .await
-            .map_err(io::Error::other)?;
+        let store = TursoStore::open_with(
+            data.join("objects.db"),
+            OpenOptions::default().with_owner(owner.clone()),
+        )
+        .await
+        .map_err(io::Error::other)?;
         let store: Arc<dyn Store> = Arc::new(store);
         // The actor of the store itself; every connection writes as its own caller (`Planning::bootstrap`).
-        let mut repo = TaskRepo::new(store, actor);
+        let mut repo = TaskRepo::new(store, actor, owner);
         if let Some(instance) = instance {
             repo = repo.with_instance(instance);
         }
@@ -85,11 +109,11 @@ pub fn serve_command(args: impl IntoIterator<Item = OsString>) -> i32 {
     match served {
         Ok(()) => 0,
         Err(e) if e.kind() == io::ErrorKind::Interrupted => {
-            eprintln!("fs-modules-planning: {e}");
+            let _ = writeln!(err, "fs-modules-planning: {e}");
             0
         }
         Err(e) => {
-            eprintln!("fs-modules-planning: {e}");
+            let _ = writeln!(err, "fs-modules-planning: {e}");
             1
         }
     }

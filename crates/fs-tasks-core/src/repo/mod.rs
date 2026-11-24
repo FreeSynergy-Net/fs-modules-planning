@@ -23,9 +23,11 @@ mod span;
 mod transfer;
 mod unblocked;
 mod unblocked_batch;
+mod unit;
 mod unread;
 mod upgrade;
 
 pub use consts::{CONTENT_TYPE, CONTEXT, TASK_TYPE};
 pub use handle::TaskRepo;
+pub use unit::CardOp;
 pub use upgrade::IndexReport;

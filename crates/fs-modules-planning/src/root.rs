@@ -117,6 +117,7 @@ impl PerConnection for Planning {
         let form =
             new_client::<fs_interfaces::formsource_capnp::form_source::Client, _>(FormSourceImpl {
                 repo: repo.clone(),
+                origin: Rc::default(),
             })
             .client;
         let tasks = new_client::<tasks::Client, _>(Root { repo }).client;

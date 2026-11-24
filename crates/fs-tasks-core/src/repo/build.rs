@@ -99,8 +99,8 @@ impl TaskRepo {
         }
         e.iri = Some(format!("https://{}/tasks/{}", self.instance, e.id));
         e.context = Some(CONTEXT.into());
-        e.attributed_to = Some(self.actor.clone());
-        e.to = vec![self.actor.clone()];
+        e.attributed_to = Some(self.by.actor.clone());
+        e.to = vec![self.by.actor.clone()];
         e
     }
 }

@@ -38,11 +38,19 @@ impl TaskRepo {
 
     /// Store a task whose `uid` the caller has found free (`create_inner` asked the store; an import
     /// asked its list of known `uid`s). Only the object id is checked here, which is a lookup by key.
-    pub(super) async fn store_new(
+    pub(super) async fn store_new(&self, task: Task, original: Option<Blob>) -> Result<TaskEntry> {
+        let (o, id) = self.new_object(task, original).await?;
+        self.put_one(o).await?;
+        self.feed.notify(&TaskChange::Created(id));
+        self.entry(id).await?.ok_or(Error::NotFound(id))
+    }
+
+    /// The object of a new task, ready to be written (its `uid` is free, its id is not taken), and its id.
+    pub(super) async fn new_object(
         &self,
         mut task: Task,
         original: Option<Blob>,
-    ) -> Result<TaskEntry> {
+    ) -> Result<(StoredObject, ObjectId)> {
         let now = now_utc();
         task.created.get_or_insert_with(|| now.clone());
         task.updated.get_or_insert(now);
@@ -58,9 +66,7 @@ impl TaskRepo {
         if self.objects.get(id).await?.is_some() {
             return Err(Error::Conflict(format!("an object with id {id} exists")));
         }
-        self.objects.put(o, &self.actor).await?;
-        self.feed.notify(&TaskChange::Created(id));
-        self.entry(id).await?.ok_or(Error::NotFound(id))
+        Ok((o, id))
     }
 
     pub(super) async fn stored(&self, id: ObjectId) -> Result<Option<StoredObject>> {
@@ -86,13 +92,11 @@ impl TaskRepo {
 
     pub(super) async fn delete_inner(&self, id: ObjectId) -> Result<()> {
         let stored = self.stored(id).await?.ok_or(Error::NotFound(id))?;
-        let gone = entry_of(stored).ok();
-        self.objects.delete(id, &self.actor).await?;
-        self.feed.notify(&TaskChange::Deleted(id));
-        if let Some(gone) = gone {
-            self.queue_unblocked(&gone.task, None);
+        drop(stored);
+        match self.delete_checked(id, None).await? {
+            fs_objects::Outcome::Done(_) => Ok(()),
+            other => Err(super::unit::refused(&other)),
         }
-        Ok(())
     }
 }
 
