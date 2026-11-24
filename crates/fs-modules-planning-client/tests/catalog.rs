@@ -33,7 +33,7 @@ fn the_shipped_catalog_names_the_commands_by_contract_key_with_their_arguments()
         args("task.create"),
         [
             ("title", "text", true),
-            ("board", "text", true),
+            ("board", "text", false),
             ("column", "text", true),
             ("after", "reference", false),
             ("before", "reference", false)

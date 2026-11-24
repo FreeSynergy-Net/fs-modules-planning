@@ -11,6 +11,18 @@ use fs_modules_planning::{FORM_CARDS, PROVIDER};
 use fs_tasks_core::Task;
 use tokio::task::LocalSet;
 
+/// Fields a card has only when its task has them (or that the neighbours write, not the page).
+const OPTIONAL: [&str; 8] = [
+    "due",
+    "percent",
+    "priority",
+    "participants",
+    "keywords",
+    "description",
+    "after",
+    "before",
+];
+
 #[tokio::test(flavor = "current_thread")]
 async fn a_card_is_moved_through_invoke_with_text_values_only() {
     let dir = tempfile::Builder::new().prefix("fs").tempdir().unwrap();
@@ -72,19 +84,12 @@ async fn a_card_is_moved_through_invoke_with_text_values_only() {
             // every field the catalog names is one the service writes (`due` only for a task that has one)
             let forms: serde_json::Value =
                 serde_json::from_str(include_str!("../../../catalog/forms.json")).unwrap();
-            for name in forms[0]["fields"].as_object().unwrap().keys().filter(|n| {
-                ![
-                    "due",
-                    "percent",
-                    "priority",
-                    "participants",
-                    "keywords",
-                    "description",
-                    "after",
-                    "before",
-                ]
-                .contains(&n.as_str())
-            }) {
+            for name in forms[0]["fields"]
+                .as_object()
+                .unwrap()
+                .keys()
+                .filter(|n| !OPTIONAL.contains(&n.as_str()))
+            {
                 assert!(rows[0].2.iter().any(|(p, _)| p == name), "{name}");
             }
 
