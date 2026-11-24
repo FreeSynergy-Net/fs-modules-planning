@@ -138,17 +138,16 @@ impl Board {
         self.place.remove(uid);
         let mut lower: Option<Key> = None;
         for card in &shown[..at] {
-            let key = match self.place.get(*card) {
-                Some(p) => key_of(p)?,
-                None => {
-                    let key = between(lower.as_ref(), None);
-                    let place = Place {
-                        column: column.to_owned(),
-                        key: key.to_text(),
-                    };
-                    self.place.insert((*card).clone(), place);
-                    key
-                }
+            let key = if let Some(p) = self.place.get(*card) {
+                key_of(p)?
+            } else {
+                let key = between(lower.as_ref(), None);
+                let place = Place {
+                    column: column.to_owned(),
+                    key: key.to_text(),
+                };
+                self.place.insert((*card).clone(), place);
+                key
             };
             lower = Some(key);
         }
