@@ -33,6 +33,9 @@ fn color_other_forms_are_refused_with_path() {
         json!("ffaa00"),
         json!("rgb(1,2,3)"),
         json!("transparent"),
+        json!("rebeccapurple"),
+        json!("RebeccaPurple"),
+        json!("#ffaa00ff"),
         json!(""),
         json!(5),
     ] {

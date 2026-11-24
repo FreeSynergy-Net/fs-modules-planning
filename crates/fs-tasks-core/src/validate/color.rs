@@ -4,7 +4,7 @@
 
 /// True if `s` is a CSS3 color name (section 4.3) or `#rgb` / `#rrggbb` (section 4.2.1).
 ///
-/// Functional forms (`rgb(...)`, `hsl(...)`), `transparent` and a hex form without `#` are not named by the RFC and are refused,
+/// Functional forms (`rgb(...)`, `hsl(...)`), `transparent`, `rebeccapurple` (CSS4, not in section 4.3) and a hex form without `#` are not named by the RFC and are refused,
 /// although the parser would read them. Names are case-insensitive, as in CSS.
 pub(crate) fn is_valid(s: &str) -> bool {
     if let Some(hex) = s.strip_prefix('#') {
@@ -13,5 +13,6 @@ pub(crate) fn is_valid(s: &str) -> bool {
     !s.is_empty()
         && s.bytes().all(|b| b.is_ascii_alphabetic())
         && !s.eq_ignore_ascii_case("transparent")
+        && !s.eq_ignore_ascii_case("rebeccapurple")
         && csscolorparser::parse(s).is_ok()
 }

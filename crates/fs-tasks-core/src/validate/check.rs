@@ -52,13 +52,13 @@ pub fn issues(t: &Task) -> Vec<Issue> {
     match t.extra.get("color") {
         None => {}
         Some(serde_json::Value::String(s)) if super::color::is_valid(s) => {}
-        Some(v) => c.bad(
-            "/color",
-            format!(
-                "not a CSS color name or #rgb / #rrggbb: {}",
-                quoted(&v.to_string())
-            ),
-        ),
+        Some(v) => {
+            let shown = v.as_str().map_or_else(|| v.to_string(), quoted);
+            c.bad(
+                "/color",
+                format!("not a CSS color name or #rgb / #rrggbb: {shown}"),
+            );
+        }
     }
     if let Some(s) = &t.progress_updated
         && parse_utc(s).is_err()
