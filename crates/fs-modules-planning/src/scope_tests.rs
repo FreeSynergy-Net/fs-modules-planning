@@ -1,6 +1,6 @@
 //! The precision of the scope of a board for a DELETED card: the before-image decides, so a card of another label is no false positive.
 //!
-//! Pattern: table-free scenario tests over the core (`TaskRepo`), no socket.
+//! Pattern: Scenario tests (given a store, when a card changes, then the scope holds) over the core (`TaskRepo`), no socket.
 
 use std::sync::Arc;
 

@@ -46,6 +46,20 @@ pub fn issues(t: &Task) -> Vec<Issue> {
             format!("not a duration: {}", quoted(d)),
         );
     }
+    if t.priority.is_some_and(|p| !(0..=9).contains(&p)) {
+        c.bad("/priority", "0..=9");
+    }
+    match t.extra.get("color") {
+        None => {}
+        Some(serde_json::Value::String(s)) if super::color::is_valid(s) => {}
+        Some(v) => c.bad(
+            "/color",
+            format!(
+                "not a CSS color name or #rgb / #rrggbb: {}",
+                quoted(&v.to_string())
+            ),
+        ),
+    }
     if let Some(s) = &t.progress_updated
         && parse_utc(s).is_err()
     {

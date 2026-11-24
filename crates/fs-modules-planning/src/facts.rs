@@ -7,7 +7,7 @@ use fs_tasks_core::Task;
 
 /// The own channels of `cards-in-columns@1.3.0` that are set on `task`: `priority` (RFC 8984 section 4.4.1, 1..9; 0 is "not set", other
 /// integers are reserved and not sent), `color` (section 4.2.11, as the member `color` the task carries; not typed in the model, so it is read as the
-/// standard member of the open map) and `estimated` (section 4.2.2 `estimatedDuration`, ISO 8601 as stored).
+/// standard member of the open map) and `estimated` (section 5.2.3 `estimatedDuration`, ISO 8601 as stored).
 pub(crate) fn channels(task: &Task) -> Vec<(&'static str, String)> {
     let mut out = Vec::new();
     if let Some(priority) = task.priority.filter(|p| (1..=9).contains(p)) {
