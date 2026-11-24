@@ -17,6 +17,7 @@
 mod args;
 mod boards;
 mod both;
+mod compat;
 mod errors;
 mod facts;
 mod formsource;

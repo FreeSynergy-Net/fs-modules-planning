@@ -643,6 +643,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fs-interfaces"
+version = "0.2.0"
+source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=7bbad2ff60017c809b83085a4c6b6cab16b9b605#7bbad2ff60017c809b83085a4c6b6cab16b9b605"
+dependencies = [
+ "capnp",
+ "fs-types",
+ "semver",
+]
+
+[[package]]
 name = "fs-jscalendar"
 version = "0.0.7"
 source = "git+https://github.com/FreeSynergy-Net/fs-jscalendar?tag=v0.0.7#14c7026184720fb3c4d179b11a549739498a3efa"
@@ -660,12 +670,14 @@ dependencies = [
 
 [[package]]
 name = "fs-module"
-version = "0.1.0"
-source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?tag=v0.1.0#030a5a821c34e85f6da5f60bc9b69b9ce0544482"
+version = "0.2.0"
+source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=7bbad2ff60017c809b83085a4c6b6cab16b9b605#7bbad2ff60017c809b83085a4c6b6cab16b9b605"
 dependencies = [
  "capnp",
  "capnp-rpc",
- "fs-interfaces",
+ "fs-interfaces 0.2.0",
+ "fs-types",
+ "tokio",
 ]
 
 [[package]]
@@ -674,7 +686,7 @@ version = "0.0.3"
 dependencies = [
  "capnp",
  "capnp-rpc",
- "fs-interfaces",
+ "fs-interfaces 0.2.0",
  "fs-module",
  "fs-modules-planning-client",
  "fs-objects",
@@ -683,6 +695,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "tokio",
+ "uuid",
 ]
 
 [[package]]
@@ -691,7 +704,7 @@ version = "0.0.3"
 dependencies = [
  "capnp",
  "capnp-rpc",
- "fs-interfaces",
+ "fs-interfaces 0.2.0",
  "fs-jscalendar",
  "fs-modules-planning",
  "fs-objects",
@@ -738,7 +751,7 @@ dependencies = [
  "capnp",
  "capnp-rpc",
  "chrono",
- "fs-interfaces",
+ "fs-interfaces 0.1.0",
  "fs-objects",
  "fs-trusted-path",
  "fs-types",
@@ -757,7 +770,7 @@ dependencies = [
  "async-trait",
  "capnp",
  "chrono",
- "fs-interfaces",
+ "fs-interfaces 0.2.0",
  "fs-jscalendar",
  "fs-objects",
  "fs-rank",

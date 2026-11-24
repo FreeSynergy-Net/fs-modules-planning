@@ -12,7 +12,10 @@ use fs_tasks_core::Task;
 use tokio::task::LocalSet;
 
 /// Fields a card has only when its task has them (or that the neighbours write, not the page).
-const OPTIONAL: [&str; 8] = [
+const OPTIONAL: [&str; 11] = [
+    "color",
+    "estimated",
+    "column-limit",
     "due",
     "percent",
     "priority",
@@ -56,6 +59,7 @@ async fn a_card_is_moved_through_invoke_with_text_values_only() {
             assert_eq!(field(&rows[0], "column"), "todo");
             // both ways of writing the key, and the older minors (a subset of the form) are read, with the same cards
             for key in [
+                "cards-in-columns@1.3",
                 "cards-in-columns@1.2",
                 "cards-in-columns@1.1.0",
                 "cards-in-columns@1.1",
@@ -69,7 +73,7 @@ async fn a_card_is_moved_through_invoke_with_text_values_only() {
                 );
             }
             for key in [
-                "cards-in-columns@1.3.0",
+                "cards-in-columns@1.4.0",
                 "cards-in-columns@2.0.0",
                 "cards-in-columns@x",
             ] {

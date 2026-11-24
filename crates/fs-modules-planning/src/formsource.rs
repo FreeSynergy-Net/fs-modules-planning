@@ -1,4 +1,4 @@
-//! `FormSource` of the planning module: the read side for drawing by a form (`cards-in-columns@1.2`, and 1.1 and 1.0 for reading) and the writing of the commands
+//! `FormSource` of the planning module: the read side for drawing by a form (`cards-in-columns@1.3`, and 1.2, 1.1 and 1.0 for reading) and the writing of the commands
 //! of `catalog/commands.json` (`card.move`, `task.create`, `task.delete`, see `write.rs`), next to the contract `tasks.capnp` on the
 //! same socket.
 //!
@@ -23,15 +23,15 @@ use crate::write::{
 /// Who the service says it is in `hello`.
 pub const PROVIDER: &str = "planning";
 
-/// The form this module draws and writes, as `name@x.y.z` (a key of `schema/forms.txt`): `cards-in-columns@1.2.0` has the channels `order`
+/// The form this module draws and writes, as `name@x.y.z` (a key of `schema/forms.txt`): `cards-in-columns@1.3.0` has the channels (as 1.2.0) `order`
 /// (read only: the sequence), `after`, `before`, `create` and `remove` and the `writes` of `move`. `catalog/forms.json` declares this version
-/// as `1.2` (the host reads `x.y` until it takes `x.y.z`).
-pub const FORM_CARDS: &str = "cards-in-columns@1.2.0";
+/// as `1.3` (the host reads `x.y` until it takes `x.y.z`).
+pub const FORM_CARDS: &str = "cards-in-columns@1.3.0";
 
 /// The name of the form and the older minors of it that are still read (`1.1`, `1.0`: the same cards, a subset of the channels); both ways
 /// of writing the key (`x.y`, `x.y.z`) are taken, the patch does not count.
 pub const FORM_NAME: &str = "cards-in-columns";
-const MINORS_SERVED: [u64; 3] = [0, 1, 2];
+const MINORS_SERVED: [u64; 4] = [0, 1, 2, 3];
 
 /// The most records of one page when the caller names no limit (or a bigger one).
 pub const PAGE_MAX: u32 = 500;
@@ -49,6 +49,8 @@ struct Card {
     board: String,
     column: String,
     label: String,
+    /// The WIP limit of the column (`column-limit`); the component counts, the module only reports it.
+    limit: Option<u32>,
     uid: String,
     at: usize,
 }
@@ -76,10 +78,12 @@ impl FormSourceImpl {
             for column in layout.columns {
                 let (board, id) = (&entry.board.name, &column.column.id);
                 let label = &column.column.name;
+                let limit = column.column.wip_limit;
                 out.extend(column.cards.into_iter().enumerate().map(|(at, uid)| Card {
                     board: board.clone(),
                     column: id.clone(),
                     label: label.clone(),
+                    limit,
                     uid,
                     at,
                 }));
@@ -95,6 +99,7 @@ impl FormSourceImpl {
             board,
             column,
             label,
+            limit,
             uid,
             at,
         }: &Card,
@@ -115,12 +120,13 @@ impl FormSourceImpl {
             row.push(("due", due));
         }
         row.push(("column-label", label.clone()));
+        if let Some(limit) = limit {
+            row.push(("column-limit", limit.to_string()));
+        }
         if let Some(percent) = task.percent_complete {
             row.push(("percent", percent.to_string()));
         }
-        if let Some(progress) = &task.progress {
-            row.push(("progress", progress.clone()));
-        }
+        row.extend(crate::facts::channels(task));
         row.extend(crate::facts::of(task));
         Ok(Some(row))
     }
@@ -146,7 +152,7 @@ impl form_source::Server for FormSourceImpl {
         let p = params.get()?;
         let form = p.get_form()?.to_str()?;
         if !serves(form) {
-            let why = format!("this module draws {FORM_CARDS} (and 1.1, 1.0 for reading)");
+            let why = format!("this module draws {FORM_CARDS} (and 1.2, 1.1, 1.0 for reading)");
             return Err(problem(UNKNOWN_FORM, why, 404).into_error());
         }
         let scope = p.get_scope()?.to_string()?;
@@ -222,7 +228,7 @@ impl form_source::Server for FormSourceImpl {
             }
             Err(why) => {
                 out.set_failed(true);
-                why.write(out.init_problem());
+                crate::compat::write_problem(out.init_problem(), &why);
             }
         }
         Ok(())
