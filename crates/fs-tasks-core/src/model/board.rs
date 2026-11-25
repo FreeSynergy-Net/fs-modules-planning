@@ -53,6 +53,10 @@ pub struct Board {
     /// (`Board::order`), never a stored list. An old board with a list `order` is read without it (no migration).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub place: BTreeMap<String, Place>,
+    /// The swim lanes: the axis (`state`, `assignee` ...) to the ids of its lanes, in the order shown. Appended field: a
+    /// board without it is read with no lanes (no migration).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub lanes: BTreeMap<String, Vec<String>>,
 }
 
 /// A task as the layout needs it.
@@ -95,6 +99,7 @@ impl Board {
                 Column::new("closed", "Closed", &["failed", "cancelled"]),
             ],
             place: BTreeMap::new(),
+            lanes: BTreeMap::new(),
         }
     }
 

@@ -123,7 +123,7 @@ pub fn actor_of(p: &Participant) -> Option<&str> {
 }
 
 impl Task {
-    /// Assign the task to an actor (role `owner`); returns the participant key. Assigning the same actor IRI twice keeps
+    /// Assign the task to an actor (role `chair`, "responsible"); returns the participant key. Assigning the same actor IRI twice keeps
     /// the one participant (its name and type are updated).
     pub fn assign_actor(&mut self, actor: &str, kind: ActorType, name: &str) -> String {
         let existing = self
@@ -136,10 +136,21 @@ impl Task {
         p.type_ = Some("Participant".into());
         p.name = Some(name.to_string());
         p.kind = Some(kind.kind().to_string());
-        p.roles.insert("owner".into(), true);
+        p.roles.insert("chair".into(), true);
         p.extra.insert(ACTOR_KEY.into(), json!(actor));
         p.extra.insert(ACTOR_TYPE_KEY.into(), json!(kind.as_str()));
         key
+    }
+
+    /// The participants who are responsible for the task: those with the role `chair` set to `true` (RFC 8984 4.4.6
+    /// `roles`). The ONE place that says "responsible"; `owner` stays for rights, not for this.
+    ///
+    /// Pattern: Specification – one predicate (`roles.chair == true`) that every reader of "responsible" asks.
+    pub fn assignees(&self) -> Vec<&Participant> {
+        self.participants
+            .values()
+            .filter(|p| p.roles.get("chair") == Some(&true))
+            .collect()
     }
 
     /// The actor IRIs the task is assigned to, in participant order.

@@ -77,7 +77,7 @@ fn commands_edit_the_value() {
         "same address, same participant"
     );
     assert_eq!(t.participants.len(), 1);
-    assert_eq!(t.participants[&k].roles.get("owner"), Some(&true));
+    assert_eq!(t.participants[&k].roles.get("chair"), Some(&true));
     assert_eq!(t.participant_by_email("mailto:BEN@example.org"), Some("p1"));
     t.relate("urn:uuid:other", Relation::DependsOn);
     t.relate("urn:uuid:other", Relation::FinishToStart);
