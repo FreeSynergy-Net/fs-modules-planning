@@ -2,8 +2,10 @@
 
 Version = tag.
 
-## 0.0.4
+## 0.0.5
 
+- Note: 0.0.5 is the first version that is delivered; v0.0.4 was a failed release run (pin lag: two levels of fs-release pins behind), the tag stays as a dead tag. Pin: fs-release callers `release.yml`, `check.yml`, `windows.yml` to `05a4a6a4` (the release fix; `check-pin-chain` green at this commit). Written with the help of Claude (Anthropic).
+- Auf Deutsch: Hinweis: 0.0.5 ist die erste ausgelieferte Version; v0.0.4 war ein fehlgeschlagener Release-Lauf (Pin-Rueckstand: zwei Ebenen der fs-release-Pins hinterher), der Tag bleibt als toter Tag stehen. Pin: fs-release-Aufrufer `release.yml`, `check.yml`, `windows.yml` auf `05a4a6a4` (der Release-Fix; `check-pin-chain` gruen an diesem Commit). Geschrieben mit Hilfe von Claude (Anthropic).
 - Pin: fs-rpc rev `0f639470` (was `9aff426a`; also fs-trusted-path), fs-person-service rev `157f10ca` (fs-modules-person main, was `9d9a6163`) and fs-interfaces rev `ad56e2f4` (was `a395979b`; also in fs-tasks-core); one source per library, `cargo tree -d` shows no fs-* duplicate; fs-components is not in the graph. Written with the help of Claude (Anthropic).
 - Auf Deutsch: Pin: fs-rpc rev `0f639470` (war `9aff426a`; auch fs-trusted-path), fs-person-service rev `157f10ca` (fs-modules-person main, war `9d9a6163`) und fs-interfaces rev `ad56e2f4` (war `a395979b`; auch in fs-tasks-core); eine Quelle je Bibliothek, `cargo tree -d` zeigt kein fs-* Doppeltes; fs-components ist nicht im Graph. Geschrieben mit Hilfe von Claude (Anthropic).
 - Test fix: `an_expired_claim_can_be_taken_over_by_another` (fs-tasks-core) no longer waits on the wall clock; the claim is held for 5 minutes, then its end is set in the past with `edit`, so the test cannot go red under load (it was red on CI Linux and Windows with a 1-second claim). No production code changed. Written with the help of Claude (Anthropic).
