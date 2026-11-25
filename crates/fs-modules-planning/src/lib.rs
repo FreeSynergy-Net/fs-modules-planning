@@ -23,6 +23,7 @@ mod core;
 mod core_conv;
 mod errors;
 mod facts;
+mod feed;
 mod formsource;
 mod items;
 mod lanes;

@@ -21,12 +21,12 @@ use fs_interfaces::module::{
 };
 use fs_objects::{ActivityId, Origin};
 use fs_tasks_core::{TaskItems, TaskRepo};
-use tokio::sync::broadcast::error::RecvError;
 use tokio::task::JoinHandle;
 
 use crate::args::Pairs;
 use crate::commands::dispatch;
 use crate::core_conv::{applied, change_ref, clash, refusal_of, refusal_of_error};
+use crate::feed::pump;
 use crate::formsource::{
     FormSourceImpl, LEVEL, PAGE_MAX, PROVIDER, UNKNOWN_FORM, offset_of, serves,
     unwatchable_form_why,
@@ -246,38 +246,18 @@ impl ModuleCore for PlanningCore {
     /// Outside a `LocalSet`: the pump of the store is a local task (`tokio::task::spawn_local`). `Guarded::new` calls this, so build the
     /// wrapper inside the `LocalSet` of the program.
     fn feed(&self, sink: ChangeFeed) {
-        // the wrapper registered `on_feed_break` before; without it nobody listens and the loss goes unsaid (a module is never left running
-        // for a wrapper that does not listen: the contract says the wrapper registers first)
+        // the wrapper registered `on_feed_break` before `feed` (the contract)
         let broke = self.broke.borrow().clone();
         let lost = move |loss: FeedLoss| {
             if let Some(b) = &broke {
                 b(loss);
             }
         };
-        let Ok(mut rx) = self.repo.subscribe_changes() else {
+        let Ok(rx) = self.repo.subscribe_changes() else {
             lost(FeedLoss::Closed);
             return;
         };
-        let repo = self.repo.clone();
-        let task = tokio::task::spawn_local(async move {
-            loop {
-                match rx.recv().await {
-                    // the head of a unit only (its members are not changes of their own)
-                    Ok(a) if a.unit.is_none() => {
-                        let change = change_ref(&a, &seen(&repo, &a).await)
-                            .in_scopes(scopes_of(&repo, &a).await);
-                        sink(&change);
-                    }
-                    Ok(_) => {}
-                    // the wrapper ends the subscriptions (they would miss changes); the feed goes on for new ones
-                    Err(RecvError::Lagged(n)) => lost(FeedLoss::Lagged { missed: n }),
-                    Err(RecvError::Closed) => {
-                        lost(FeedLoss::Closed);
-                        break;
-                    }
-                }
-            }
-        });
+        let task = pump(self.repo.clone(), rx, sink, lost);
         self.feeds.borrow_mut().push(task);
     }
 

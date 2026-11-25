@@ -8,6 +8,7 @@
 
 #[path = "../common/mod.rs"]
 mod common;
+mod core_calls;
 mod fixture;
 mod scope;
 

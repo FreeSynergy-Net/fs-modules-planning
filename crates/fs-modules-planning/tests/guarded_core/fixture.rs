@@ -23,7 +23,7 @@ pub const FORM: &str = "cards-in-columns@1.4.0";
 pub struct World {
     pub repo: Arc<TaskRepo>,
     pub uids: Vec<String>,
-    _dir: tempfile::TempDir,
+    dir: tempfile::TempDir,
 }
 
 /// An empty store (no board, no card) whose change channel holds `capacity` changes (a small one makes a slow feed lag).
@@ -40,12 +40,12 @@ pub async fn empty(capacity: usize) -> World {
     World {
         repo: Arc::new(repo),
         uids: Vec::new(),
-        _dir: dir,
+        dir,
     }
 }
 
 pub async fn world() -> World {
-    let World { repo, _dir, .. } = empty(1024).await;
+    let World { repo, dir, .. } = empty(1024).await;
     let repo = Arc::into_inner(repo).expect("one handle");
     let board = repo.board_create("work", None).await.unwrap();
     let mut uids = Vec::new();
@@ -72,7 +72,7 @@ pub async fn world() -> World {
     World {
         repo: Arc::new(repo),
         uids,
-        _dir,
+        dir,
     }
 }
 
