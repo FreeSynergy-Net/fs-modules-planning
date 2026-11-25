@@ -23,6 +23,7 @@ async fn ids(source: &form_source::Client, scope: &str) -> Vec<String> {
     rows.iter().map(|r| r.0.clone()).collect()
 }
 
+#[allow(clippy::too_many_lines)] // one board with tasks, then every axis read once: the setup is shared on purpose
 #[tokio::test(flavor = "current_thread")]
 async fn lanes_come_from_the_axis_and_the_stored_ones_come_first() {
     let dir = tempfile::Builder::new().prefix("fs").tempdir().unwrap();
@@ -96,55 +97,8 @@ async fn lanes_come_from_the_axis_and_the_stored_ones_come_first() {
             // a lane is not a card: nothing may be done at a lane record or at the list of lanes
             for scope in ["lanes:state", "lanes:assignee:work", "lanes:lane"] {
                 let (set, records) = may_of(&source.client, ROWS, scope).await;
-                assert!(set.is_empty(), "{scope} set");
-                assert!(!records.is_empty());
-                assert!(records.iter().all(|(_, m)| m.is_empty()), "{scope}");
-            }
-            // the lanes stored at the board for the axes `state` and `lane` come first
-            let entry = repo
-                .boards()
-                .await
-                .unwrap()
-                .into_iter()
-                .find(|b| b.board.name == "work")
-                .unwrap();
-            let mut board = entry.board.clone();
-            board.lanes.insert("assignee".into(), vec![ZED.into()]);
-            repo.board_edit(entry.id, entry.revision(), board)
-                .await
-                .unwrap();
-
-            // status: the five words of the RFC in order
-            let five = [
-                "needs-action",
-                "in-process",
-                "completed",
-                "failed",
-                "cancelled",
-            ];
-            assert_eq!(ids(&source.client, "lanes:state").await, five);
-            // people: the stored lane first (empty), then everyone in charge of a task of the board, each once
-            assert_eq!(
-                ids(&source.client, "lanes:assignee:work").await,
-                [ZED, ADA, BOB]
-            );
-            // no board named = every board: the stored lane of `work` is still there
-            assert_eq!(ids(&source.client, "lanes:assignee").await, [ZED, ADA, BOB]);
-            // boards: all, or the one named
-            assert_eq!(ids(&source.client, "lanes:lane").await.len(), 2);
-            assert_eq!(ids(&source.client, "lanes:lane:home").await, ["home"]);
-            // the record: name, place and axis
-            let rows = page(&source.client, ROWS, "lanes:assignee:work")
-                .await
-                .unwrap();
-            assert_eq!(field(&rows[0], "label"), ZED);
-            assert_eq!(field(&rows[2], "order"), "2");
-            assert_eq!(field(&rows[2], "axis"), "assignee");
-            // a lane is not a card: nothing may be done at a lane record or at the list of lanes
-            for scope in ["lanes:state", "lanes:assignee:work", "lanes:lane"] {
-                let (set, records) = may_of(&source.client, ROWS, scope).await;
-                assert!(set.is_empty(), "{scope} set");
-                assert!(!records.is_empty());
+                assert_eq!(set, Vec::<String>::new(), "{scope} set");
+                assert_ne!(records.len(), 0, "{scope}");
                 assert!(records.iter().all(|(_, m)| m.is_empty()), "{scope}");
             }
             // the lanes stored at the board for the axes `state` and `lane` come first
