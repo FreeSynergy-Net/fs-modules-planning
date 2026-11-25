@@ -184,7 +184,7 @@ async fn of_two_simultaneous_claims_one_wins_and_the_other_is_told_who_holds_it(
 async fn an_expired_claim_can_be_taken_over_by_another() {
     let r = repo().await;
     let t = r.create(Task::new("Take me")).await.unwrap();
-    r.claim(t.id, RUNNER, Utc::now() + Duration::seconds(1))
+    r.claim(t.id, RUNNER, Utc::now() + Duration::minutes(5))
         .await
         .unwrap();
     assert!(
@@ -193,7 +193,10 @@ async fn an_expired_claim_can_be_taken_over_by_another() {
             .is_err(),
         "still held"
     );
-    tokio::time::sleep(std::time::Duration::from_millis(2200)).await;
+    // No wall-clock wait: let the claim end in the past by writing its end directly.
+    let mut held = r.get(t.id).await.unwrap().unwrap().task;
+    held.set_claim(RUNNER, Utc::now() - Duration::minutes(1));
+    r.edit(t.id, held).await.unwrap();
     let taken = r
         .claim(t.id, ADA, Utc::now() + Duration::minutes(5))
         .await

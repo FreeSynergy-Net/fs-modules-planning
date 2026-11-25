@@ -4,6 +4,8 @@ Version = tag.
 
 ## Unreleased
 
+- Test fix: `an_expired_claim_can_be_taken_over_by_another` (fs-tasks-core) no longer waits on the wall clock; the claim is held for 5 minutes, then its end is set in the past with `edit`, so the test cannot go red under load (it was red on CI Linux and Windows with a 1-second claim). No production code changed. Written with the help of Claude (Anthropic).
+- Auf Deutsch: Testfix: `an_expired_claim_can_be_taken_over_by_another` (fs-tasks-core) wartet nicht mehr auf die Uhr; die Belegung gilt 5 Minuten, dann wird ihr Ende mit `edit` in die Vergangenheit gesetzt, der Test wird unter Last nicht mehr rot (er war auf CI Linux und Windows mit 1-Sekunden-Belegung rot). Kein Produktionscode geändert. Geschrieben mit Hilfe von Claude (Anthropic).
 - Pin: fs-rpc rev `9aff426a` (was `9585ed18`), fs-person-service rev `9d9a6163` (fs-modules-person main, was `36604aa5`) and fs-interfaces rev `a395979b` (was `83b96e30`; also in fs-tasks-core); one source per library, `cargo tree -d` shows no fs-* duplicate. Written with the help of Claude (Anthropic).
 - Auf Deutsch: Pin: fs-rpc rev `9aff426a` (war `9585ed18`), fs-person-service rev `9d9a6163` (fs-modules-person main, war `36604aa5`) und fs-interfaces rev `a395979b` (war `83b96e30`; auch in fs-tasks-core); eine Quelle je Bibliothek, `cargo tree -d` zeigt kein fs-* Doppeltes. Geschrieben mit Hilfe von Claude (Anthropic).
 - Pin: fs-rpc rev `9585ed18` (was `82d2ba19`; all places, also the dev-deps) and fs-person-service rev `36604aa5` (fs-modules-person main, was `4f24c465`); one fs-rpc in the graph, `cargo tree -d` shows no fs-* duplicate. Written with the help of Claude (Anthropic).
