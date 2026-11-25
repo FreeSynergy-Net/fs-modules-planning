@@ -8,8 +8,8 @@
   <project_license>MIT OR Apache-2.0</project_license>
   <url type="homepage">https://github.com/FreeSynergy-Net/fs-modules-planning</url>
   <custom>
-    <value key="fs:provides">planning@0.0.4</value>
-    <value key="fs:needs">person</value>
+    <value key="fs:provides">planning@0.0.3</value>
+    <value key="fs:needs">person@~0.0.1</value>
   </custom>
   <releases>
     <release version="0.0.4"/>
