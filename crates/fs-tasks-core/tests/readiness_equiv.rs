@@ -18,9 +18,11 @@ use fs_tasks_core::{Task, TaskItems, TaskQuery};
 async fn equiv_runs(seed: u64, runs: usize) -> (usize, usize, Vec<String>) {
     let mut rng = Rng(seed);
     let mut checked = 0;
+    let mut wide = 0;
     let mut findings = Vec::new();
     for run in 0..runs {
         let n = if rng.below(10) == 0 {
+            wide += 1;
             21 + rng.below(6)
         } else {
             1 + rng.below(9)
@@ -83,15 +85,18 @@ async fn equiv_runs(seed: u64, runs: usize) -> (usize, usize, Vec<String>) {
             }
         }
     }
-    (checked, 0, findings)
+    (checked, wide, findings)
 }
+
+/// Why 80 and not 400 in the standard run: in a debug build under CI load the 400 runs took up to 120 s (the nextest limit).
+/// 80 runs with the fixed seeds below still meet every kind of graph (the test asserts that wide graphs are met); the full 400 run in the nextest
+/// profile `release` (see `common::random::runs`) and by hand with `REV_RUNS=400 cargo test`.
+/// Pattern: Bounded Exhaustive Check – a small fixed-seed sample of the random space in the standard run, the full range in `release`.
+const QUICK_RUNS: usize = 80;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn every_way_of_asking_gives_the_same_readiness() {
-    let runs: usize = std::env::var("REV_RUNS")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(400);
+    let runs = common::random::runs(QUICK_RUNS);
     let parts = 8;
     let mut handles = Vec::new();
     for p in 0..parts {
@@ -100,15 +105,16 @@ async fn every_way_of_asking_gives_the_same_readiness() {
             runs / parts,
         )));
     }
-    let (mut checked, mut ghosts, mut findings) = (0, 0, Vec::new());
+    let (mut checked, mut wide, mut findings) = (0, 0, Vec::new());
     for h in handles {
         let (c, g, f) = h.await.unwrap();
         checked += c;
-        ghosts += g;
+        wide += g;
         findings.extend(f);
     }
+    assert!(wide > 0, "the wide graphs (21 to 26 tasks) are met");
     eprintln!(
-        "EQUIV runs {runs} tasks checked {checked}, ghost-only diffs {ghosts}, findings {}",
+        "EQUIV runs {runs} tasks checked {checked}, wide graphs {wide}, findings {}",
         findings.len()
     );
     for f in &findings {

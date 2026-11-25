@@ -32,11 +32,13 @@ fn closes_cycle(all: &[Task], holder: &str, other: &str, rel: Relation) -> (bool
     (st, any)
 }
 
-async fn relate_runs(seed: u64, runs: usize) -> Vec<String> {
+async fn relate_runs(seed: u64, runs: usize) -> (Vec<String>, usize, usize) {
     let mut rng = Rng(seed);
     let mut findings = Vec::new();
+    let (mut wides, mut refusals) = (0, 0);
     for run in 0..runs {
         let wide = rng.below(8) == 0;
+        wides += usize::from(wide);
         let n = if wide {
             30 + rng.below(30)
         } else {
@@ -70,6 +72,7 @@ async fn relate_runs(seed: u64, runs: usize) -> Vec<String> {
                 findings.push(format!("[ERR] seed {seed} run {run}: {e:?}"));
             }
             if refused {
+                refusals += 1;
                 let after = r.get(he.id).await.unwrap().unwrap();
                 if serde_json::to_value(&after.task).unwrap()
                     != serde_json::to_value(&before.task).unwrap()
@@ -114,15 +117,18 @@ async fn relate_runs(seed: u64, runs: usize) -> Vec<String> {
             }
         }
     }
-    findings
+    (findings, wides, refusals)
 }
+
+/// Why 80 and not 400 in the standard run: in a debug build under CI load the 400 runs took up to 120 s (the nextest limit).
+/// 80 runs with the fixed seeds below still meet every kind of graph and both answers (the test asserts that wide graphs and refusals are met); the full 400 run in the nextest
+/// profile `release` (see `common::random::runs`) and by hand with `REV_RUNS=400 cargo test`.
+/// Pattern: Bounded Exhaustive Check – a small fixed-seed sample of the random space in the standard run, the full range in `release`.
+const QUICK_RUNS: usize = 80;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn relate_refuses_exactly_the_cycles() {
-    let runs: usize = std::env::var("REV_RUNS")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(400);
+    let runs = common::random::runs(QUICK_RUNS);
     let parts = 8;
     let mut handles = Vec::new();
     for p in 0..parts {
@@ -132,9 +138,17 @@ async fn relate_refuses_exactly_the_cycles() {
         )));
     }
     let mut findings = Vec::new();
+    let (mut wides, mut refusals) = (0, 0);
     for h in handles {
-        findings.extend(h.await.unwrap());
+        let (f, w, r) = h.await.unwrap();
+        findings.extend(f);
+        wides += w;
+        refusals += r;
     }
+    assert!(
+        wides > 0 && refusals > 0,
+        "wide graphs ({wides}) and refusals ({refusals}) are met"
+    );
     let real = findings.iter().filter(|f| !f.contains("GHOST")).count();
     eprintln!(
         "RELATE runs {runs}: findings {} (real {real})",

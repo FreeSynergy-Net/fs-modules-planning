@@ -21,3 +21,6 @@ slow-timeout = { period = "60s", terminate-after = 5 }
 fail-fast = false
 retries = 0
 slow-timeout = { period = "60s", terminate-after = 10 }
+
+# The random comparison tests of fs-tasks-core (readiness_equiv, relate_brute_force, unblocked_random) run 80 fixed-seed runs
+# in quick/default and the full 400 in this profile (they read NEXTEST_PROFILE, see tests/common/random.rs `runs`).

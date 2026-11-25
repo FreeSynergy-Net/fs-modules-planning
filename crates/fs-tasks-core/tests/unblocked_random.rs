@@ -21,9 +21,10 @@ impl TaskListener for Log {
     }
 }
 
-async fn unblocked_runs(seed: u64, runs: usize) -> Vec<String> {
+async fn unblocked_runs(seed: u64, runs: usize) -> (Vec<String>, BTreeSet<usize>) {
     let mut rng = Rng(seed);
     let mut findings = Vec::new();
+    let mut kinds = BTreeSet::new();
     for run in 0..runs {
         let n = 2 + rng.below(6);
         let ghosts = rng.below(2);
@@ -42,6 +43,7 @@ async fn unblocked_runs(seed: u64, runs: usize) -> Vec<String> {
         let target = format!("u{}", rng.below(n));
         let te = &stored[&target];
         let op = rng.below(7);
+        kinds.insert(op);
         let opname;
         match op {
             0 => {
@@ -178,15 +180,18 @@ async fn unblocked_runs(seed: u64, runs: usize) -> Vec<String> {
             }
         }
     }
-    findings
+    (findings, kinds)
 }
+
+/// Why 80 and not 400 in the standard run: in a debug build under CI load the 400 runs took up to 120 s (the nextest limit).
+/// 80 runs with the fixed seeds below still meet every kind of change (the test asserts all 7); the full 400 run in the nextest
+/// profile `release` (see `common::random::runs`) and by hand with `REV_RUNS=400 cargo test`.
+/// Pattern: Bounded Exhaustive Check – a small fixed-seed sample of the random space in the standard run, the full range in `release`.
+const QUICK_RUNS: usize = 80;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn unblocked_matches_the_expectation_for_every_kind_of_change() {
-    let runs: usize = std::env::var("REV_RUNS")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(400);
+    let runs = common::random::runs(QUICK_RUNS);
     let parts = 8;
     let mut handles = Vec::new();
     for p in 0..parts {
@@ -196,9 +201,13 @@ async fn unblocked_matches_the_expectation_for_every_kind_of_change() {
         )));
     }
     let mut findings = Vec::new();
+    let mut kinds = BTreeSet::new();
     for h in handles {
-        findings.extend(h.await.unwrap());
+        let (f, k) = h.await.unwrap();
+        findings.extend(f);
+        kinds.extend(k);
     }
+    assert_eq!(kinds.len(), 7, "every kind of change is met: {kinds:?}");
     eprintln!("UNBLOCKED runs {runs}: findings {}", findings.len());
     for f in findings.iter() {
         eprintln!("{f}");

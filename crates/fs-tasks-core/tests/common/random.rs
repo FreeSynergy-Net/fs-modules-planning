@@ -8,6 +8,20 @@ use std::collections::BTreeMap;
 use fs_tasks_core::plan::readiness_of;
 use fs_tasks_core::{Relation, Task, TaskEntry, TaskItems, TaskQuery, TaskRepo};
 
+/// Number of random runs of a comparison test: `REV_RUNS` if set (by hand), else the full range, 400, in the nextest
+/// profile `release` (nextest sets `NEXTEST_PROFILE`; the CI release stage), else `quick` (the standard run: fixed seeds,
+/// every class of case still met, asserted by the tests).
+pub fn runs(quick: usize) -> usize {
+    let set = std::env::var("REV_RUNS").ok().and_then(|v| v.parse().ok());
+    set.unwrap_or_else(|| {
+        if std::env::var("NEXTEST_PROFILE").is_ok_and(|p| p == "release") {
+            400
+        } else {
+            quick
+        }
+    })
+}
+
 pub struct Rng(pub u64);
 impl Rng {
     pub fn next(&mut self) -> u64 {

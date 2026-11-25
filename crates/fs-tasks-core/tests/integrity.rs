@@ -136,11 +136,14 @@ async fn an_edit_takes_what_a_create_takes() {
 async fn small_edits_cannot_grow_a_task_past_what_fits() {
     let r = repo().await;
     let id = r.create(task("grows", None)).await.unwrap().id;
-    let big = "x".repeat(6 * 1024 * 1024);
-    let mut last = Ok(());
-    for i in 0..4 {
-        last = r.label(id, &format!("{i}{big}")).await.map(|_| ());
-    }
+    // Each edit alone fits (9 MiB < the 16 MiB limit); the second one makes the task grow past it. Two edits of 9 MiB are
+    // the smallest series with this property (before: four of 6 MiB, 18 s in a debug build, a third of the CI limit under load).
+    // Pattern: Boundary Value Analysis – the smallest series that crosses the limit; the series is the same in every profile.
+    let big = "x".repeat(9 * 1024 * 1024);
+    r.label(id, &format!("0{big}"))
+        .await
+        .expect("one edit fits");
+    let last = r.label(id, &format!("1{big}")).await.map(|_| ());
     assert!(matches!(last, Err(Error::TooLarge(_))), "{last:?}");
     assert!(r.get(id).await.unwrap().is_some());
     let escaped = serde_json::json!({"@type": "Task", "version": "2.0", "uid": "e",
