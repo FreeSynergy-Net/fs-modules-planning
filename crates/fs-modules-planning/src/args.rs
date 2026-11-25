@@ -11,22 +11,38 @@ use crate::write::{BAD_ARGS, Failure, UID_MAX, boxed};
 /// A place by a number is never taken (S1 E3): the caller names the neighbour cards (`after`, `before`).
 const NUMBER_PLACES: [&str; 2] = ["order", "index"];
 
+/// The values of a request as (path, text) pairs: what both ways in (the wire of `FormSource` and the `Invocation` of `Guarded`)
+/// hand to the commands.
+pub(crate) type Pairs = [(String, String)];
+
+/// The wire list of values as pairs (a text that is no UTF-8 is `bad-arguments`).
+pub(crate) fn wire_args(
+    list: capnp::struct_list::Reader<'_, value::Owned>,
+) -> Result<Vec<(String, String)>, Failure> {
+    list.iter()
+        .map(|v| {
+            let path = v
+                .get_path()
+                .and_then(|p| p.to_string().map_err(capnp::Error::from))
+                .map_err(|e| bad_wire(&e))?;
+            let text = v
+                .get_text()
+                .and_then(|t| t.to_string().map_err(capnp::Error::from))
+                .map_err(|e| bad_wire(&e))?;
+            Ok((path, text))
+        })
+        .collect()
+}
+
 /// The text values of a request by path. A path that is not in `allowed` or that comes twice is refused with the reason, never
 /// silently dropped.
 pub(crate) fn text_args(
-    list: capnp::struct_list::Reader<'_, value::Owned>,
+    list: &Pairs,
     allowed: &[&str],
 ) -> Result<BTreeMap<String, String>, Failure> {
     let mut out = BTreeMap::new();
-    for v in list {
-        let path = v
-            .get_path()
-            .and_then(|p| p.to_string().map_err(capnp::Error::from))
-            .map_err(|e| bad_wire(&e))?;
-        let text = v
-            .get_text()
-            .and_then(|t| t.to_string().map_err(capnp::Error::from))
-            .map_err(|e| bad_wire(&e))?;
+    for (path, text) in list {
+        let (path, text) = (path.clone(), text.clone());
         if NUMBER_PLACES.contains(&path.as_str()) {
             let why = format!(
                 "{path:?} is not taken: the place is given by the neighbour cards `after` and `before` (record ids), never by a number"

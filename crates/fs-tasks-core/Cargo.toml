@@ -25,7 +25,7 @@ async-trait = "0.1"
 tokio = { version = "1", features = ["sync"] }
 capnp = { version = "0.27", optional = true }
 # The contract and the provider rule (ADR 0045). The generated code is re-exported with feature `contract`.
-fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "6b02b138b3e55c290d6cbd957976013cc49dca5d", version = "0.3.0" }
+fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "b3afc86d37c071a6d334710b9818241f56859554", version = "0.3.0" }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }

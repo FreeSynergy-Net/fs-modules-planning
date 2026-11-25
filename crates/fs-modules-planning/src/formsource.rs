@@ -13,13 +13,12 @@ use fs_interfaces::forms::parse_key;
 use fs_interfaces::formsource_capnp::{form_source, record_view, value};
 use fs_tasks_core::{TaskItems, TaskRepo};
 
+use crate::args::{Pairs, wire_args};
+use crate::commands::dispatch;
 use crate::level2::{clash_problem, write_done, write_problem};
 use crate::level2_calls;
 use crate::wire::count;
-use crate::write::{
-    BAD_ARGS, Failure, RECORD_COMMANDS, Ran, SET_COMMANDS, UNKNOWN_COMMAND, boxed, create_task,
-    delete_task, may, move_card, permit, problem,
-};
+use crate::write::{BAD_ARGS, Failure, Ran, permit, problem};
 use fs_objects::Origin;
 
 /// Who the service says it is in `hello`.
@@ -66,7 +65,7 @@ pub(crate) struct FormSourceImpl {
 type Reply = Result<(), capnp::Error>;
 
 /// Whether `form` is `rows@1.0.0` (`x.y` and `x.y.z`).
-fn serves_rows(form: &str) -> bool {
+pub(crate) fn serves_rows(form: &str) -> bool {
     parse_key(form).is_some_and(|(name, v)| name == "rows" && v.major == 1 && v.minor == 0)
 }
 
@@ -96,48 +95,26 @@ impl form_source::Server for FormSourceImpl {
     ) -> Reply {
         let p = params.get()?;
         let form = p.get_form()?.to_str()?;
-        let rows_form = serves_rows(form);
-        if !rows_form && !serves(form) {
-            return Err(problem(UNKNOWN_FORM, unknown_form_why(), 404).into_error());
-        }
         let scope = p.get_scope()?.to_string()?;
         let skip = read_offset(p.get_cursor()?)?;
-        let limit = match p.get_limit() {
-            0 => PAGE_MAX,
-            n => n.min(PAGE_MAX),
-        } as usize;
-        let (total, rows) = if rows_form {
-            self.list_page(&scope, skip, limit).await?
-        } else {
-            let cards = self.cards(&scope).await?;
-            let mut rows = Vec::new();
-            for card in cards.iter().skip(skip).take(limit) {
-                rows.extend(self.row(card).await?);
-            }
-            (cards.len(), rows)
-        };
-        let end = (skip + limit).min(total);
-        // what the provider supports, for a record and for the set (a new card); the same table `invoke` is held to
-        let caps = self.repo.capabilities();
-        // the lanes are not cards: no command is offered at a lane record or at the list of lanes
-        let (on_record, on_set) = if rows_form && scope.starts_with(crate::lanes::LANES) {
-            (Vec::new(), Vec::new())
-        } else {
-            (may(&caps, &RECORD_COMMANDS), may(&caps, &SET_COMMANDS))
-        };
+        let data = self.page_data(form, &scope, skip, p.get_limit()).await?;
+        let (rows, end) = (&data.rows, data.end);
         let mut out = results.get();
         {
             let mut page = out.reborrow().init_page();
-            page.set_total(total as u64);
+            page.set_total(data.total as u64);
             page.set_has_total(true);
-            set_may(page.reborrow().init_may(count(on_set.len())?), &on_set);
+            set_may(
+                page.reborrow().init_may(count(data.on_set.len())?),
+                &data.on_set,
+            );
             let mut list = page.init_records(count(rows.len())?);
-            for (i, row) in (0u32..).zip(&rows) {
+            for (i, row) in (0u32..).zip(rows) {
                 let mut view: record_view::Builder<'_> = list.reborrow().get(i);
                 view.set_id(row[0].1.as_str());
                 set_may(
-                    view.reborrow().init_may(count(on_record.len())?),
-                    &on_record,
+                    view.reborrow().init_may(count(data.on_record.len())?),
+                    &data.on_record,
                 );
                 let mut values = view.init_values(count(row.len() - 1)?);
                 for (j, (path, text)) in (0u32..).zip(&row[1..]) {
@@ -145,7 +122,7 @@ impl form_source::Server for FormSourceImpl {
                 }
             }
         }
-        if end < total {
+        if end < data.total {
             out.init_next().set_opaque(end.to_string().as_bytes());
         }
         Ok(())
@@ -173,7 +150,10 @@ impl form_source::Server for FormSourceImpl {
         let command = p.get_command()?.to_string()?;
         let record = p.get_record()?.to_string()?;
         // level 1: no expectation and no step
-        let result = self.run(&command, record, p.get_args()?, None, None).await;
+        let result = match wire_args(p.get_args()?) {
+            Ok(args) => self.run(&command, record, &args, None, None).await,
+            Err(why) => Err(why),
+        };
         let mut out = results.get();
         match result {
             Ok(Ran::Done(done)) => {
@@ -247,18 +227,12 @@ impl FormSourceImpl {
         &self,
         command: &str,
         record: String,
-        args: capnp::struct_list::Reader<'_, value::Owned>,
+        args: &Pairs,
         expect: Option<u64>,
         step: Option<(String, String)>,
     ) -> Result<Ran, Failure> {
         permit(&self.repo.capabilities(), command)?;
-        let repo = self.handle(step.as_ref());
-        match command {
-            "card.move" => move_card(&repo, record, args, expect).await,
-            "task.create" => create_task(&repo, &record, args).await,
-            "task.delete" => delete_task(&repo, &record, args, expect).await,
-            other => Err(boxed(UNKNOWN_COMMAND, format!("no command {other:?}"), 404)),
-        }
+        dispatch(&self.handle(step.as_ref()), command, record, args, expect).await
     }
 }
 
@@ -269,7 +243,11 @@ fn set_may(mut out: capnp::text_list::Builder<'_>, keys: &[&str]) {
 }
 
 pub(crate) fn read_offset(c: cursor::Reader<'_>) -> capnp::Result<usize> {
-    let bytes = c.get_opaque()?;
+    offset_of(c.get_opaque()?)
+}
+
+/// The offset a cursor of this service says (empty = the start); anything else is `bad-arguments`.
+pub(crate) fn offset_of(bytes: &[u8]) -> capnp::Result<usize> {
     if bytes.is_empty() {
         return Ok(0);
     }

@@ -11,12 +11,11 @@
 //! the provider cannot do is `form-source-forbidden` (403): `formsource.capnp` names no kinds for `invoke`, and the host (SW-5) tells them apart only later, so no new kind `unsupported` (501) is started here.
 
 use fs_interfaces::Capabilities;
-use fs_interfaces::formsource_capnp::value;
 use fs_objects::{Activity, Outcome};
 use fs_rpc::{Problem, run_to_end};
 use fs_tasks_core::{BoardEntry, Boards, Error, TaskEntry, TaskItems, TaskRepo};
 
-use crate::args::{check_uid, take, take_neighbour, text_args};
+use crate::args::{Pairs, check_uid, take, take_neighbour, text_args};
 use crate::errors::rpc_error;
 use crate::place::{create_placed, place};
 
@@ -102,16 +101,30 @@ pub(crate) fn may(caps: &Capabilities, wanted: &[&'static str]) -> Vec<&'static 
         .collect()
 }
 
-/// `invoke` refuses what `may` does not say, so the two never disagree.
-pub(crate) fn permit(caps: &Capabilities, command: &str) -> Result<(), Failure> {
-    let known = RECORD_COMMANDS.iter().chain(&SET_COMMANDS);
-    if !known.clone().any(|k| *k == command) {
-        return Err(boxed(
-            UNKNOWN_COMMAND,
-            format!("no command {command:?}"),
-            404,
-        ));
+/// Whether `command` is one of the commands of this module (the keys of `catalog/commands.json`).
+pub(crate) fn is_known(command: &str) -> bool {
+    RECORD_COMMANDS
+        .iter()
+        .chain(&SET_COMMANDS)
+        .any(|k| *k == command)
+}
+
+/// A command this module does not have is `unknown-command` 404: no right is asked for what does not exist.
+pub(crate) fn known(command: &str) -> Result<(), Failure> {
+    if is_known(command) {
+        return Ok(());
     }
+    Err(boxed(
+        UNKNOWN_COMMAND,
+        format!("no command {command:?}"),
+        404,
+    ))
+}
+
+/// `invoke` refuses what `may` does not say, so the two never disagree (the way of the level 1 service; under `Guarded` the
+/// rules say it, see `rules.rs`).
+pub(crate) fn permit(caps: &Capabilities, command: &str) -> Result<(), Failure> {
+    known(command)?;
     if caps.is_supported(command) {
         return Ok(());
     }
@@ -154,7 +167,7 @@ async fn task_of(repo: &TaskRepo, uid: &str) -> Result<TaskEntry, Failure> {
 pub(crate) async fn move_card(
     repo: &TaskRepo,
     uid: String,
-    args: capnp::struct_list::Reader<'_, value::Owned>,
+    args: &Pairs,
     expect: Option<u64>,
 ) -> Result<Ran, Failure> {
     let mut got = text_args(args, &MOVE_ARGS)?;
@@ -184,7 +197,7 @@ pub(crate) async fn move_card(
 pub(crate) async fn create_task(
     repo: &TaskRepo,
     record: &str,
-    args: capnp::struct_list::Reader<'_, value::Owned>,
+    args: &Pairs,
 ) -> Result<Ran, Failure> {
     let mut got = text_args(args, &CREATE_ARGS)?;
     if !record.is_empty() {
@@ -246,7 +259,7 @@ pub(crate) async fn create_task(
 pub(crate) async fn delete_task(
     repo: &TaskRepo,
     uid: &str,
-    args: capnp::struct_list::Reader<'_, value::Owned>,
+    args: &Pairs,
     expect: Option<u64>,
 ) -> Result<Ran, Failure> {
     text_args(args, &[])?;

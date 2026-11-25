@@ -36,7 +36,12 @@ pub const CAPABILITIES: [&str; 9] = [
 /// The actor written to the log and to `attributedTo` for a caller: from the system's id of the caller only.
 #[must_use]
 pub fn actor_of(caller: &Caller) -> String {
-    format!("urn:freesynergy:os-user:{}", caller.id())
+    actor_iri(caller.id())
+}
+
+/// The same IRI from the system id as text (`Context::caller` of the module contract has the id, not a `Caller`).
+pub(crate) fn actor_iri(system_id: &str) -> String {
+    format!("urn:freesynergy:os-user:{system_id}")
 }
 
 struct Root {

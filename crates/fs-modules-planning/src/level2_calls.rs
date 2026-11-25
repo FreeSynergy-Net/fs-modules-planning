@@ -43,7 +43,10 @@ pub(crate) async fn invoke_if(
     let step = parse_step(step.get_run()?.to_str()?, step.get_step()?.to_str()?);
     let mut out = results.get();
     let ran = match (wanted, step) {
-        (Ok(expect), Ok(step)) => me.run(&command, record, p.get_args()?, expect, step).await,
+        (Ok(expect), Ok(step)) => match crate::args::wire_args(p.get_args()?) {
+            Ok(args) => me.run(&command, record, &args, expect, step).await,
+            Err(why) => Err(why),
+        },
         (Err(why), _) | (_, Err(why)) => Err(why),
     };
     match ran {
@@ -63,6 +66,44 @@ pub(crate) async fn invoke_if(
         }
     }
     Ok(())
+}
+
+/// What taking a change back came to (for both ways out: the wire and `PlanningCore::revert`).
+pub(crate) enum Reverted {
+    /// Taken back: the unit written.
+    Done(crate::write::Done),
+    /// The record changed since: the last change and the paths.
+    Clash(Box<fs_objects::Activity>, Vec<String>),
+    /// Refused (not revertible, blacked out, unknown) or broken.
+    Failed(fs_rpc::Problem),
+}
+
+/// Take the unit `id` back on `repo` (origin and step already set): the `revert_by` of the store, its outcome as `Reverted`.
+pub(crate) async fn revert_of(repo: &fs_tasks_core::TaskRepo, id: ActivityId) -> Reverted {
+    match repo.revert_change(id).await {
+        Ok(Outcome::Done(done)) => Reverted::Done(crate::write::Done {
+            record: done.head.object.to_string(),
+            text: "change-reverted",
+            head: Some(Box::new(done.head)),
+        }),
+        Ok(Outcome::Conflict { by, fields }) => {
+            Reverted::Clash(by, fields.into_iter().map(|f| f.path).collect())
+        }
+        Ok(Outcome::NotRevertible(why)) => Reverted::Failed(problem(NOT_REVERTIBLE, why, 422)),
+        Ok(_) => {
+            let known = repo.activity_of(id).await.ok().flatten().is_some();
+            Reverted::Failed(if known {
+                problem(
+                    GONE,
+                    "the change was blacked out or its record is gone",
+                    410,
+                )
+            } else {
+                problem(UNKNOWN_CHANGE, "no such change", 404)
+            })
+        }
+        Err(e) => Reverted::Failed(*to_problem(e)),
+    }
 }
 
 /// `revert`: write the before-images of the unit as a new `Undo` unit, as the step; a clash, a redacted or an unknown change is told.
@@ -90,44 +131,20 @@ pub(crate) async fn revert(
             return Ok(());
         }
     };
-    match me.handle(step.as_ref()).revert_change(id).await {
-        Ok(Outcome::Done(done)) => {
-            let made = crate::write::Done {
-                record: done.head.object.to_string(),
-                text: "change-reverted",
-                head: Some(Box::new(done.head)),
-            };
+    match revert_of(&me.handle(step.as_ref()), id).await {
+        Reverted::Done(made) => {
             let seen = head_seen(me, &made).await;
             write_done(out.init_result(), &made, &seen);
         }
-        Ok(Outcome::Conflict { by, fields }) => {
-            let paths: Vec<String> = fields.into_iter().map(|f| f.path).collect();
+        Reverted::Clash(by, paths) => {
             out.set_failed(true);
             write_problem(out.reborrow().init_problem(), &clash_problem());
             let seen = seen(&me.repo, &by).await;
             write_clash(out.init_conflict(), (&by, &seen), &paths);
         }
-        Ok(Outcome::NotRevertible(why)) => {
+        Reverted::Failed(why) => {
             out.set_failed(true);
-            write_problem(out.init_problem(), &problem(NOT_REVERTIBLE, why, 422));
-        }
-        Ok(_) => {
-            out.set_failed(true);
-            let known = me.repo.activity_of(id).await.ok().flatten().is_some();
-            let why = if known {
-                problem(
-                    GONE,
-                    "the change was blacked out or its record is gone",
-                    410,
-                )
-            } else {
-                problem(UNKNOWN_CHANGE, "no such change", 404)
-            };
             write_problem(out.init_problem(), &why);
-        }
-        Err(e) => {
-            out.set_failed(true);
-            write_problem(out.init_problem(), &to_problem(e));
         }
     }
     Ok(())
