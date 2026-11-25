@@ -10,6 +10,7 @@
 mod common;
 mod core_calls;
 mod fixture;
+mod read_right;
 mod scope;
 
 use std::cell::Cell;
