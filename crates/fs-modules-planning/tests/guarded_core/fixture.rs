@@ -26,15 +26,27 @@ pub struct World {
     _dir: tempfile::TempDir,
 }
 
-pub async fn world() -> World {
+/// An empty store (no board, no card) whose change channel holds `capacity` changes (a small one makes a slow feed lag).
+pub async fn empty(capacity: usize) -> World {
     let dir = tempfile::Builder::new().prefix("fs").tempdir().unwrap();
     let owner = FixedOwner(fs_objects::testing::owner()).owner().unwrap();
-    let options = fs_objects::OpenOptions::default().with_owner(owner.clone());
+    let mut options = fs_objects::OpenOptions::default().with_owner(owner.clone());
+    options.subscribe_capacity = capacity;
     let store = TursoStore::open_with(dir.path().join("objects.db"), options)
         .await
         .unwrap();
     let store: Arc<dyn Store> = Arc::new(store);
     let repo = TaskRepo::new(store, "https://local.invalid/users/owner", owner);
+    World {
+        repo: Arc::new(repo),
+        uids: Vec::new(),
+        _dir: dir,
+    }
+}
+
+pub async fn world() -> World {
+    let World { repo, _dir, .. } = empty(1024).await;
+    let repo = Arc::into_inner(repo).expect("one handle");
     let board = repo.board_create("work", None).await.unwrap();
     let mut uids = Vec::new();
     for title in ["a", "b", "c"] {
@@ -60,7 +72,7 @@ pub async fn world() -> World {
     World {
         repo: Arc::new(repo),
         uids,
-        _dir: dir,
+        _dir,
     }
 }
 

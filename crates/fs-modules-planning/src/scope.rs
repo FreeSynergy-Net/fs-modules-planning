@@ -3,8 +3,7 @@
 //! Pattern: Specification (a change is in scope when it is about the board, about a card the board shows now, or about a card that
 //! belonged to it BEFORE the change: a deleted card is no longer in the layout, so its before-image decides).
 
-use std::cell::RefCell;
-use std::collections::{BTreeSet, HashMap, VecDeque};
+use std::collections::BTreeSet;
 
 use fs_objects::{Activity, ObjectId};
 use fs_tasks_core::{Boards, TaskItems, TaskRepo};
@@ -46,60 +45,14 @@ impl Scope {
     }
 }
 
-/// The text ids a board is known by in a scope: its id and its name (a caller names a scope by either).
-fn names_of(board: &fs_tasks_core::BoardEntry) -> [String; 2] {
-    [board.id.to_string(), board.board.name.clone()]
-}
-
-/// Every scope (board id and board name) the head activity `a` is a change in, decided now by [`Scope::holds`].
+/// The fixed ids (board UUIDs) of every board the head activity `a` is a change in, decided now by [`Scope::holds`]. These are the
+/// `ChangeRef::scopes` of the change: the one place where "which scope" is decided, so there is no memo to fill or to lose.
 pub(crate) async fn scopes_of(repo: &TaskRepo, a: &Activity) -> BTreeSet<String> {
     let mut out = BTreeSet::new();
     for board in repo.boards().await.unwrap_or_default() {
         if Scope(board.id).holds(repo, a).await {
-            out.extend(names_of(&board));
+            out.insert(board.id.to_string());
         }
     }
     out
-}
-
-/// The most changes whose scopes are remembered.
-const MEMO_MAX: usize = 4096;
-
-/// Pattern: Memoization (closest to a Cache; deviation: it is filled by the feed and by `changes`, never by a test) - which scopes
-/// a change is in, by its activity id. `Follow` is a SYNCHRONOUS test of a `ChangeRef`, while the scope of a change needs the store
-/// (the layout, the before-image); so the async side decides once when it hands the change out, and `Follow` only looks it up.
-/// A change that is not remembered is not in any scope (fail closed).
-#[derive(Default)]
-pub(crate) struct ScopeMemo {
-    inner: RefCell<Inner>,
-}
-
-#[derive(Default)]
-struct Inner {
-    order: VecDeque<String>,
-    scopes: HashMap<String, BTreeSet<String>>,
-}
-
-impl ScopeMemo {
-    /// Remember the scopes of the change `activity` (the oldest is forgotten past [`MEMO_MAX`]).
-    pub(crate) fn put(&self, activity: &str, scopes: BTreeSet<String>) {
-        let mut inner = self.inner.borrow_mut();
-        if inner.scopes.insert(activity.to_owned(), scopes).is_none() {
-            inner.order.push_back(activity.to_owned());
-        }
-        while inner.order.len() > MEMO_MAX {
-            if let Some(old) = inner.order.pop_front() {
-                inner.scopes.remove(&old);
-            }
-        }
-    }
-
-    /// Whether the change `activity` is remembered as being in `scope`.
-    pub(crate) fn holds(&self, activity: &str, scope: &str) -> bool {
-        self.inner
-            .borrow()
-            .scopes
-            .get(activity)
-            .is_some_and(|s| s.contains(scope))
-    }
 }

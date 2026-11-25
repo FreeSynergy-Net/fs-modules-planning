@@ -94,7 +94,10 @@ pub(crate) fn applied(done: &Done, seen: &Seen) -> Applied {
 
 /// The conflict of an `expect` or an undo: 409 with the last change and the paths that changed since.
 pub(crate) fn clash(by: &Activity, seen: &Seen, paths: &[String]) -> Refusal {
-    let fields = paths.iter().map(|p| FieldClash::new(p, "", "")).collect();
+    let fields = paths
+        .iter()
+        .map(|p| FieldClash::new(p, "", "").on(&seen.object))
+        .collect();
     Refusal::conflict(
         "the record was changed since it was read",
         Conflict::new(change_ref(by, seen), fields),

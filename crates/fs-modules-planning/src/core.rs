@@ -15,8 +15,9 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use fs_interfaces::module::{
-    Applied, Blob, Caller, ChangeFeed, ChangePage, ChangesQuery, Context, Follow, Invocation,
-    ModuleCore, Page, PageQuery, RecordView, Refusal, RightsRules, StepRef, Value,
+    Applied, Blob, Caller, ChangeFeed, ChangePage, ChangesQuery, Context, FeedBreak, FeedLoss,
+    Follow, Invocation, ModuleCore, Page, PageQuery, RecordView, Refusal, RightsRules, StepRef,
+    Value,
 };
 use fs_objects::{ActivityId, Origin};
 use fs_tasks_core::{TaskItems, TaskRepo};
@@ -34,14 +35,14 @@ use crate::level2::{parse_expect, parse_step, seen};
 use crate::level2_calls::{Reverted, revert_of};
 use crate::root::actor_iri;
 use crate::rules::PlanningRules;
-use crate::scope::{ScopeMemo, scopes_of};
+use crate::scope::scopes_of;
 use crate::write::{Ran, known, problem};
 
 /// The planning module over one store.
 pub struct PlanningCore {
     repo: Arc<TaskRepo>,
     rules: PlanningRules,
-    memo: Rc<ScopeMemo>,
+    broke: RefCell<Option<Rc<FeedBreak>>>,
     feeds: RefCell<Vec<JoinHandle<()>>>,
 }
 
@@ -59,7 +60,7 @@ impl PlanningCore {
         Self {
             repo,
             rules,
-            memo: Rc::default(),
+            broke: RefCell::default(),
             feeds: RefCell::default(),
         }
     }
@@ -228,11 +229,10 @@ impl ModuleCore for PlanningCore {
             .map_err(|e| refusal_of_error(&e))?;
         let mut page = ChangePage::default();
         for a in &list {
-            let change = change_ref(a, &seen(&me.repo, a).await);
+            let mut change = change_ref(a, &seen(&me.repo, a).await);
             if !q.scope.is_empty() {
-                // `follows` is synchronous: what the store says about the scope is decided here, once
-                self.memo
-                    .put(&change.activity, scopes_of(&me.repo, a).await);
+                // the scope of the query is the board id `resolve_scope` gave: `Follow::in_scope` asks `scopes` of every change
+                change = change.in_scopes(scopes_of(&me.repo, a).await);
             }
             page.changes.push(change);
         }
@@ -242,27 +242,68 @@ impl ModuleCore for PlanningCore {
         Ok(page)
     }
 
+    /// # Panics
+    /// Outside a `LocalSet`: the pump of the store is a local task (`tokio::task::spawn_local`). `Guarded::new` calls this, so build the
+    /// wrapper inside the `LocalSet` of the program.
     fn feed(&self, sink: ChangeFeed) {
+        // the wrapper registered `on_feed_break` before; without it nobody listens and the loss goes unsaid (a module is never left running
+        // for a wrapper that does not listen: the contract says the wrapper registers first)
+        let broke = self.broke.borrow().clone();
+        let lost = move |loss: FeedLoss| {
+            if let Some(b) = &broke {
+                b(loss);
+            }
+        };
         let Ok(mut rx) = self.repo.subscribe_changes() else {
+            lost(FeedLoss::Closed);
             return;
         };
-        let (repo, memo) = (self.repo.clone(), self.memo.clone());
+        let repo = self.repo.clone();
         let task = tokio::task::spawn_local(async move {
             loop {
                 match rx.recv().await {
                     // the head of a unit only (its members are not changes of their own)
                     Ok(a) if a.unit.is_none() => {
-                        let change = change_ref(&a, &seen(&repo, &a).await);
-                        memo.put(&change.activity, scopes_of(&repo, &a).await);
+                        let change = change_ref(&a, &seen(&repo, &a).await)
+                            .in_scopes(scopes_of(&repo, &a).await);
                         sink(&change);
                     }
-                    // `ChangeFeed` has no way to say "you missed some" (card): the next change goes on
-                    Ok(_) | Err(RecvError::Lagged(_)) => {}
-                    Err(RecvError::Closed) => break,
+                    Ok(_) => {}
+                    // the wrapper ends the subscriptions (they would miss changes); the feed goes on for new ones
+                    Err(RecvError::Lagged(n)) => lost(FeedLoss::Lagged { missed: n }),
+                    Err(RecvError::Closed) => {
+                        lost(FeedLoss::Closed);
+                        break;
+                    }
                 }
             }
         });
         self.feeds.borrow_mut().push(task);
+    }
+
+    fn on_feed_break(&self, sink: FeedBreak) {
+        *self.broke.borrow_mut() = Some(Rc::new(sink));
+    }
+
+    /// Pattern: Repository (lookup by key); the id or the name of a board becomes the id of the board, so a subscription survives a rename.
+    async fn resolve_scope(
+        &self,
+        cx: &Context,
+        _form: &str,
+        scope: &str,
+    ) -> Result<String, Refusal> {
+        if scope.is_empty() {
+            return Ok(String::new());
+        }
+        let board = self
+            .source(cx)?
+            .board_of(scope)
+            .await
+            .map_err(|e| refusal_of_error(&e))?;
+        // 404 for a name that is no board (and 409 for a name two boards have, `board_named`): never passed through
+        board
+            .map(|b| b.0.to_string())
+            .ok_or_else(|| Refusal::unknown_scope("no such scope"))
     }
 
     fn follows(&self, _cx: &Context, form: &str, scope: &str) -> Result<Follow, Refusal> {
@@ -273,10 +314,7 @@ impl ModuleCore for PlanningCore {
                 404,
             )));
         }
-        if scope.is_empty() {
-            return Ok(Follow::all());
-        }
-        let (memo, scope) = (self.memo.clone(), scope.to_owned());
-        Ok(Follow::by(move |c| memo.holds(&c.activity, &scope)))
+        // `scope` is the id `resolve_scope` returned (empty = all)
+        Ok(Follow::in_scope(scope))
     }
 }

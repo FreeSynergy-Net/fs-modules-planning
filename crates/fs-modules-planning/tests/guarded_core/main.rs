@@ -1,5 +1,5 @@
 //! The suite `module_v1` (level 2) over `Guarded<PlanningCore>` in this process, the check that a command the provider cannot do is
-//! refused before `apply`, and the scope of `follows`. NOT wired into the service yet (Stufe 4 B4 does that and deletes the old ways).
+//! refused before `apply`, and the scope of `follows` (`scope.rs`). NOT wired into the service yet (Stufe 4 B4 does that and deletes the old ways).
 //!
 //! Pattern: Template Method (`run_conformance` is the order of the rules; this file plugs the subject in, as `fs-rpc` `tests/guarded_g8.rs`
 //! does for `FakeCore`). Counter-proof by Decorator: the same module with rules "everything is allowed" (a wrong Strategy).
@@ -9,17 +9,17 @@
 #[path = "../common/mod.rs"]
 mod common;
 mod fixture;
+mod scope;
 
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::rc::Rc;
-use std::time::Duration;
 
 use capnp::capability::FromClientHook;
 use fixture::{FORM, Planning, World, world};
 use fs_interfaces::Capabilities;
 use fs_interfaces::formsource_capnp::form_source;
 use fs_interfaces::module::{
-    Actor, Applied, Ask, Blob, Caller, ChangeFeed, ChangePage, ChangeRef, ChangesQuery, Context,
+    Actor, Applied, Ask, Blob, Caller, ChangeFeed, ChangePage, ChangesQuery, Context, FeedBreak,
     Follow, HiddenReason, Invocation, ModuleCore, Page, PageQuery, Refusal, RightsRules, StepRef,
     Verdict,
 };
@@ -93,6 +93,17 @@ impl ModuleCore for Counting {
     }
     fn feed(&self, sink: ChangeFeed) {
         self.inner.feed(sink);
+    }
+    fn on_feed_break(&self, sink: FeedBreak) {
+        self.inner.on_feed_break(sink);
+    }
+    async fn resolve_scope(
+        &self,
+        cx: &Context,
+        form: &str,
+        scope: &str,
+    ) -> Result<String, Refusal> {
+        self.inner.resolve_scope(cx, form, scope).await
     }
     fn follows(&self, cx: &Context, form: &str, scope: &str) -> Result<Follow, Refusal> {
         self.inner.follows(cx, form, scope)
@@ -207,43 +218,4 @@ fn inv(command: &str, record: &str, args: &[(&str, &str)]) -> Invocation {
         .map(|(p, t)| fs_interfaces::module::Value::new(p, t))
         .collect();
     i
-}
-
-/// `follows`: a form that is not drawn is `unknown-form`; a scope admits the changes of what its board shows (decided with the store,
-/// remembered for the synchronous test; a board without a label shows every task by progress, so only a scope no board has is empty); no scope admits all.
-#[tokio::test(flavor = "current_thread")]
-async fn follows_admits_the_changes_of_its_board_only() {
-    LocalSet::new()
-        .run_until(async {
-            let w = world().await;
-
-            let core = PlanningCore::new(w.repo.clone());
-            let heard: Rc<RefCell<Vec<ChangeRef>>> = Rc::default();
-            let sink = heard.clone();
-            core.feed(Box::new(move |c| sink.borrow_mut().push(c.clone())));
-            let cx = cx();
-            let bad = core.follows(&cx, "rows@1.0.0", "").unwrap_err();
-            assert_eq!((bad.kind.as_str(), bad.status), ("unknown-form", 404));
-            let work = core.follows(&cx, FORM, "work").unwrap();
-            let other = core.follows(&cx, FORM, "no-such-board").unwrap();
-            let all = core.follows(&cx, "", "").unwrap();
-            let made = inv(
-                "task.create",
-                "",
-                &[("title", "N"), ("board", "work"), ("column", "todo")],
-            );
-            core.apply(&cx, made).await.unwrap();
-            for _ in 0..100 {
-                if !heard.borrow().is_empty() {
-                    break;
-                }
-                tokio::time::sleep(Duration::from_millis(20)).await;
-            }
-            let heard = heard.borrow();
-            assert!(!heard.is_empty(), "the feed told the change");
-            assert!(heard.iter().all(|c| work.admits(c)), "{heard:?}");
-            assert!(heard.iter().all(|c| !other.admits(c)), "{heard:?}");
-            assert!(heard.iter().all(|c| all.admits(c)));
-        })
-        .await;
 }
