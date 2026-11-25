@@ -14,9 +14,9 @@
 
 use fs_tasks_core::model::{Relation, Task};
 
+use crate::all::uid_of;
 use crate::build::{B, task};
 use crate::people::assign;
-use crate::uid_of;
 
 const ZONE: &str = "Europe/Berlin";
 

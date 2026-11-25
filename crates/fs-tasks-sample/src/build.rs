@@ -5,7 +5,7 @@
 
 use fs_tasks_core::model::{Relation, Task};
 
-use crate::uid_of;
+use crate::all::uid_of;
 
 /// The instant all sample tasks were created and last changed: "today" of the other samples (fs-events), 16.11.2026.
 pub(crate) const STAMP: &str = "2026-11-16T00:00:00Z";

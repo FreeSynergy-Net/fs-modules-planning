@@ -173,15 +173,15 @@ fn coverage_fails_when_a_kind_the_gap_or_the_milestone_is_missing() {
         coverage(&strip("konzept")).is_ok(),
         "FS is still there (design to aufbau, design to freigabe)"
     );
-    let mut no_sf = strip("aufbau");
-    no_sf.retain(|t| t.uid != plan_uid("freigabe"));
-    assert!(coverage(&no_sf).is_err());
-    let mut no_ss = plan.clone();
-    no_ss
+    let mut lacks_sf = strip("aufbau");
+    lacks_sf.retain(|t| t.uid != plan_uid("freigabe"));
+    assert!(coverage(&lacks_sf).is_err());
+    let mut lacks_ss = plan.clone();
+    lacks_ss
         .iter_mut()
         .filter(|t| t.uid == plan_uid("design"))
         .for_each(|t| t.related_to.clear());
-    assert!(coverage(&no_ss).unwrap_err().contains("StartToStart"));
+    assert!(coverage(&lacks_ss).unwrap_err().contains("StartToStart"));
     // No gap: all relations without a lag.
     let mut no_gap = plan;
     for t in &mut no_gap {
