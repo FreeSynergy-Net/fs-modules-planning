@@ -13,6 +13,14 @@ use fs_tasks_core::TaskRepo;
 use tokio::sync::oneshot;
 
 pub async fn serve(dir: &std::path::Path) -> (std::path::PathBuf, oneshot::Sender<()>) {
+    let (socket, stop, _) = serve_repo(dir).await;
+    (socket, stop)
+}
+
+/// Like [`serve`], and the repository the service runs on (for what the contract cannot write, e.g. the stored lanes of a board).
+pub async fn serve_repo(
+    dir: &std::path::Path,
+) -> (std::path::PathBuf, oneshot::Sender<()>, Arc<TaskRepo>) {
     // the owner of the store comes from the source of the owner, as in `serve`
     let owner = FixedOwner(fs_objects::testing::owner()).owner().unwrap();
     let options = fs_objects::OpenOptions::default().with_owner(owner.clone());
@@ -28,13 +36,14 @@ pub async fn serve(dir: &std::path::Path) -> (std::path::PathBuf, oneshot::Sende
     let socket = dir.join("planning.sock");
     let bound = fs_rpc::bind_socket(&socket).await.unwrap();
     let (stop, stopped) = oneshot::channel::<()>();
+    let service = repo.clone();
     tokio::task::spawn_local(async move {
-        let _ = fs_rpc::serve_callers(bound, Planning::new(repo, |_| {}), async {
+        let _ = fs_rpc::serve_callers(bound, Planning::new(service, |_| {}), async {
             let _ = stopped.await;
         })
         .await;
     });
-    (socket, stop)
+    (socket, stop, repo)
 }
 
 pub type Rows = Vec<(String, String, Vec<(String, String)>)>;

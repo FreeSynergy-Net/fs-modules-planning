@@ -37,6 +37,9 @@ pub const FORM_CARDS: &str = "cards-in-columns@1.4.0";
 /// The name of the form and the older minors of it that are still read (`1.1`, `1.0`: the same cards, a subset of the channels); both ways
 /// of writing the key (`x.y`, `x.y.z`) are taken, the patch does not count.
 pub const FORM_NAME: &str = "cards-in-columns";
+
+/// The second form: `rows@1.0.0`, with the type `Task` (the tasks as rows) or `Lane` (the lanes of a swim-lane view, scope `lanes:<axis>[:<board>]`).
+pub const FORM_ROWS: &str = "rows@1.0.0";
 const MINORS_SERVED: [u64; 5] = [0, 1, 2, 3, 4];
 
 /// The most records of one page when the caller names no limit (or a bigger one).
@@ -46,7 +49,7 @@ pub(crate) const UNKNOWN_FORM: &str = "form-source-unknown-form";
 
 /// The text of the problem for a form this module does not serve (one place for `page` and `watch`).
 pub(crate) fn unknown_form_why() -> String {
-    format!("this module draws {FORM_CARDS} (and 1.3, 1.2, 1.1, 1.0 for reading)")
+    format!("this module draws {FORM_CARDS} (and 1.3, 1.2, 1.1, 1.0 for reading) and {FORM_ROWS}")
 }
 
 pub(crate) struct FormSourceImpl {
@@ -56,6 +59,11 @@ pub(crate) struct FormSourceImpl {
 }
 
 type Reply = Result<(), capnp::Error>;
+
+/// Whether `form` is `rows@1.0.0` (`x.y` and `x.y.z`).
+fn serves_rows(form: &str) -> bool {
+    parse_key(form).is_some_and(|(name, v)| name == "rows" && v.major == 1 && v.minor == 0)
+}
 
 /// Whether `form` is a key of the form this module serves: the name, major 1 and a minor of `MINORS_SERVED` (`x.y` and `x.y.z`).
 pub(crate) fn serves(form: &str) -> bool {
@@ -83,7 +91,8 @@ impl form_source::Server for FormSourceImpl {
     ) -> Reply {
         let p = params.get()?;
         let form = p.get_form()?.to_str()?;
-        if !serves(form) {
+        let rows_form = serves_rows(form);
+        if !rows_form && !serves(form) {
             return Err(problem(UNKNOWN_FORM, unknown_form_why(), 404).into_error());
         }
         let scope = p.get_scope()?.to_string()?;
@@ -92,12 +101,16 @@ impl form_source::Server for FormSourceImpl {
             0 => PAGE_MAX,
             n => n.min(PAGE_MAX),
         } as usize;
-        let cards = self.cards(&scope).await?;
-        let total = cards.len();
-        let mut rows = Vec::new();
-        for card in cards.iter().skip(skip).take(limit) {
-            rows.extend(self.row(card).await?);
-        }
+        let (total, rows) = if rows_form {
+            self.list_page(&scope, skip, limit).await?
+        } else {
+            let cards = self.cards(&scope).await?;
+            let mut rows = Vec::new();
+            for card in cards.iter().skip(skip).take(limit) {
+                rows.extend(self.row(card).await?);
+            }
+            (cards.len(), rows)
+        };
         let end = (skip + limit).min(total);
         // what the provider supports, for a record and for the set (a new card); the same table `invoke` is held to
         let caps = self.repo.capabilities();

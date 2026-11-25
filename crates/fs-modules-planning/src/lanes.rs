@@ -1,0 +1,146 @@
+//! The lanes of a board as records of the form `rows@1.0.0` (type `Lane`): which lanes a swim-lane view has, also the empty ones.
+//!
+//! Pattern: Projection (a second source over the same data as the cards: the module lists the lanes of an axis in the values of the
+//! standard, grouping and naming are the frontend's). The scope is `lanes:<axis>` or `lanes:<axis>:<board>`; its meaning belongs to the
+//! module (`FormSource.page`), so `rows@1.0.0` stays as it is.
+//!
+//! The axes: `state` (the five words of RFC 8984 5.2.5 in the order of the RFC, then the vendor words the tasks in scope carry),
+//! `assignee` (every person in charge of a task in scope, see `Task::assignees()`) and `lane` (the boards). On every axis the lanes
+//! stored at the board (`Board::lanes`, axis to ids in the order shown) come first: that is how an empty lane exists.
+
+use std::collections::BTreeSet;
+
+use fs_tasks_core::{BoardEntry, Boards, TaskEntry, TaskItems};
+
+use crate::cards::Card;
+use crate::errors::rpc_error;
+use crate::facts::{assignees, state_word};
+use crate::formsource::FormSourceImpl;
+use crate::write::{UNKNOWN_SCOPE, board_named, problem};
+
+/// The scope prefix that selects the lane list of `rows@1.0.0`.
+pub(crate) const LANES: &str = "lanes:";
+
+/// The five status words of RFC 8984 5.2.5, in the order of the RFC.
+const STATES: [&str; 5] = [
+    "needs-action",
+    "in-process",
+    "completed",
+    "failed",
+    "cancelled",
+];
+
+/// What the lanes of a list are grouped by.
+#[derive(Clone, Copy)]
+pub(crate) enum Axis {
+    State,
+    Assignee,
+    Lane,
+}
+
+impl Axis {
+    /// The name of the axis: in the scope, in `Board::lanes` and as the `state` of a lane record.
+    pub(crate) const fn name(self) -> &'static str {
+        match self {
+            Self::State => "state",
+            Self::Assignee => "assignee",
+            Self::Lane => "lane",
+        }
+    }
+
+    fn parse(word: &str) -> Option<Self> {
+        [Self::State, Self::Assignee, Self::Lane]
+            .into_iter()
+            .find(|a| a.name() == word)
+    }
+}
+
+/// One lane: the value the cards are grouped by (also the record id), its name, and the axis it belongs to.
+pub(crate) struct Lane {
+    pub(crate) id: String,
+    pub(crate) axis: Axis,
+}
+
+impl Lane {
+    /// The record of the lane at place `at` by the field names of `catalog/forms.json`. The name is the value itself: a person is named by
+    /// the reference (the name comes from the module of the people), a status by its word, a board by its name.
+    pub(crate) fn row(&self, at: usize) -> Vec<(&'static str, String)> {
+        vec![
+            ("uid", self.id.clone()),
+            ("label", self.id.clone()),
+            ("order", at.to_string()),
+            ("axis", self.axis.name().to_owned()),
+        ]
+    }
+}
+
+/// `<axis>` or `<axis>:<board>` (what follows `lanes:`); the board is a name or an id.
+fn split(scope: &str) -> capnp::Result<(Axis, Option<&str>)> {
+    let (word, board) = scope
+        .split_once(':')
+        .map_or((scope, None), |(a, b)| (a, Some(b)));
+    let axis = Axis::parse(word).ok_or_else(|| {
+        let why = format!("no lanes {word:?}: the axes are state, assignee and lane");
+        problem(UNKNOWN_SCOPE, why, 404).into_error()
+    })?;
+    Ok((axis, board.filter(|b| !b.is_empty())))
+}
+
+impl FormSourceImpl {
+    /// The lanes of the scope `lanes:<axis>[:<board>]` (the part after `lanes:`), in the order shown, none twice.
+    pub(crate) async fn lanes(&self, scope: &str) -> capnp::Result<Vec<Lane>> {
+        let (axis, board) = split(scope)?;
+        let boards = self.repo.boards().await.map_err(rpc_error)?;
+        let chosen: Vec<&BoardEntry> = match board {
+            None => boards.iter().collect(),
+            Some(name) => vec![board_named(&boards, name).map_err(|p| p.into_error())?],
+        };
+        let stored = chosen
+            .iter()
+            .filter_map(|e| e.board.lanes.get(axis.name()))
+            .flatten()
+            .cloned();
+        let found: Vec<String> = match axis {
+            Axis::Lane => chosen.iter().map(|e| e.board.name.clone()).collect(),
+            Axis::State | Axis::Assignee => {
+                let tasks = self.tasks_of(board.unwrap_or("")).await?;
+                if matches!(axis, Axis::State) {
+                    STATES
+                        .map(str::to_owned)
+                        .into_iter()
+                        .chain(vendor_states(&tasks))
+                        .collect()
+                } else {
+                    tasks.iter().flat_map(|t| assignees(&t.task)).collect()
+                }
+            }
+        };
+        let mut seen = BTreeSet::new();
+        Ok(stored
+            .chain(found)
+            .filter(|id| seen.insert(id.clone()))
+            .map(|id| Lane { id, axis })
+            .collect())
+    }
+
+    /// The tasks on the boards in `scope` (empty = every board), each once.
+    pub(crate) async fn tasks_of(&self, scope: &str) -> capnp::Result<Vec<TaskEntry>> {
+        let mut seen = BTreeSet::new();
+        let mut out = Vec::new();
+        for Card { uid, .. } in self.cards(scope).await? {
+            if seen.insert(uid.clone()) {
+                out.extend(self.repo.get_by_uid(&uid).await.map_err(rpc_error)?);
+            }
+        }
+        Ok(out)
+    }
+}
+
+/// The vendor status words (`<domain>:<name>`) of the tasks, sorted: the five of the RFC are listed first by the caller.
+fn vendor_states(tasks: &[TaskEntry]) -> BTreeSet<String> {
+    tasks
+        .iter()
+        .filter_map(|t| state_word(&t.task))
+        .filter(|w| !STATES.contains(&w.as_str()))
+        .collect()
+}

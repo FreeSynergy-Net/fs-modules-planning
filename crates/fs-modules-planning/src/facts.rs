@@ -36,7 +36,7 @@ pub(crate) fn channels(task: &Task) -> Vec<(&'static str, String)> {
 
 /// The status word of the task (RFC 8984 section 5.2.5, `effective_progress()`): one of the five words of the RFC, or a vendor word
 /// `<domain>:<name>`. A stored word that is neither is NOT sent (no value; nothing is guessed or mapped to another status).
-fn state_word(task: &Task) -> Option<String> {
+pub(crate) fn state_word(task: &Task) -> Option<String> {
     const WORDS: [&str; 5] = [
         "needs-action",
         "in-process",
@@ -51,9 +51,9 @@ fn state_word(task: &Task) -> Option<String> {
     (WORDS.contains(&word) || vendor).then(|| word.to_owned())
 }
 
-/// The IRI of each person in charge (`Task::assignees()`, the one place that says "responsible"), in participant order: the actor IRI
+/// The IRI of each person in charge (`Task::assignees()`, the one place that says "responsible"), in the order of the participant keys (a map: lexicographic, `p10` before `p2`): the actor IRI
 /// (`freesynergy.net:actor`), else `mailto:` + the email (RFC 6068), else no value for that participant.
-fn assignees(task: &Task) -> Vec<String> {
+pub(crate) fn assignees(task: &Task) -> Vec<String> {
     task.assignees()
         .into_iter()
         .filter_map(|p| {

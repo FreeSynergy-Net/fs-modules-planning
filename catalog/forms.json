@@ -47,5 +47,21 @@
       "assignee": "reference",
       "timeZone": "text"
     }
+  },
+  {
+    "name": "rows",
+    "version": "1.0.0",
+    "type": "Lane",
+    "map": {
+      "items": "Lane",
+      "label": "label",
+      "order": "order",
+      "state": "axis"
+    },
+    "fields": {
+      "label": "text",
+      "order": "number",
+      "axis": "text"
+    }
   }
 ]

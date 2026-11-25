@@ -142,7 +142,7 @@ impl Task {
         key
     }
 
-    /// The participants who are responsible for the task: those with the role `chair` set to `true` (RFC 8984 4.4.6
+    /// The participants who are responsible for the task, in the order of the participant keys (a map: lexicographic, `p10` before `p2`): those with the role `chair` set to `true` (RFC 8984 4.4.6
     /// `roles`). The ONE place that says "responsible"; `owner` stays for rights, not for this.
     ///
     /// Pattern: Specification – one predicate (`roles.chair == true`) that every reader of "responsible" asks.
@@ -153,7 +153,7 @@ impl Task {
             .collect()
     }
 
-    /// The actor IRIs of ALL participants that have one (any role), in the order of the participant keys; "assigned to" is [`Task::assignees`].
+    /// The actor IRIs of ALL participants that have one (any role), in the order of the participant keys (a map: lexicographic, `p10` before `p2`); "assigned to" is [`Task::assignees`].
     pub fn actors(&self) -> Vec<&str> {
         self.participants.values().filter_map(actor_of).collect()
     }
