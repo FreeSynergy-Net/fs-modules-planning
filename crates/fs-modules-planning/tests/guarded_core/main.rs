@@ -1,5 +1,5 @@
 //! The suite `module_v1` (level 2) over `Guarded<PlanningCore>` in this process, the check that a command the provider cannot do is
-//! refused before `apply`, and the scope of `follows` (`scope.rs`). NOT wired into the service yet (Stufe 4 B4 does that and deletes the old ways).
+//! refused before `apply`, and the scope of `follows` (`scope.rs`). The service (`Planning`) serves exactly this wrapper.
 //!
 //! Pattern: Template Method (`run_conformance` is the order of the rules; this file plugs the subject in, as `fs-rpc` `tests/guarded_g8.rs`
 //! does for `FakeCore`). Counter-proof by Decorator: the same module with rules "everything is allowed" (a wrong Strategy).
@@ -16,7 +16,8 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use capnp::capability::FromClientHook;
-use fixture::{FORM, Planning, World, world};
+use common::suite::Planning;
+use fixture::{FORM, World, world};
 use fs_interfaces::Capabilities;
 use fs_interfaces::formsource_capnp::form_source;
 use fs_interfaces::module::{

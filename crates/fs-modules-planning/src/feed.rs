@@ -11,8 +11,8 @@ use fs_tasks_core::TaskRepo;
 use tokio::sync::broadcast::{Receiver, error::RecvError};
 use tokio::task::JoinHandle;
 
+use crate::changes::seen;
 use crate::core_conv::change_ref;
-use crate::level2::seen;
 use crate::scope::scopes_of;
 
 /// Hand every head activity of `rx` to `sink` as a `ChangeRef` with its `scopes` (board ids), and report a loss to `lost`.

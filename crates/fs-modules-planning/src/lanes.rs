@@ -14,7 +14,7 @@ use fs_tasks_core::{BoardEntry, Boards, Task};
 
 use crate::errors::rpc_error;
 use crate::facts::{STATES, assignees, state_word};
-use crate::formsource::FormSourceImpl;
+use crate::forms::Reading;
 use crate::write::{UNKNOWN_SCOPE, board_named, problem};
 
 /// The scope prefix that selects the lane list of `rows@1.0.0`.
@@ -76,7 +76,7 @@ fn split(scope: &str) -> capnp::Result<(Axis, Option<&str>)> {
     Ok((axis, board.filter(|b| !b.is_empty())))
 }
 
-impl FormSourceImpl {
+impl Reading {
     /// The lanes of the scope `lanes:<axis>[:<board>]` (the part after `lanes:`), in the order shown, none twice.
     pub(crate) async fn lanes(&self, scope: &str) -> capnp::Result<Vec<Lane>> {
         let (axis, board) = split(scope)?;

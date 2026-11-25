@@ -1,12 +1,12 @@
 //! The planning module as a `ModuleCore` for `fs_rpc::Guarded`: reading, changing, taking back and following, and nothing else.
 //!
 //! Pattern: Template Method (steps) - this delivers only the steps; check -> change -> record -> report stands once in
-//! `Guarded<PlanningCore>`. Adapter: the bodies are the ones of the level 1 service (`formsource.rs`, `level2*.rs`), read through the
-//! values of `fs_interfaces::module`. Rights are NOT asked here (`rules.rs`). Who writes: the actor is the IRI of the system id of the
+//! `Guarded<PlanningCore>`. Adapter: the bodies read and write through the
+//! values of `fs_interfaces::module` (`forms.rs`, `page_data.rs`, `changes.rs`, `commands.rs`). Rights are NOT asked here (`rules.rs`). Who writes: the actor is the IRI of the system id of the
 //! connection (`cx.caller`, the same text as `actor_of`), the origin is what the program said of itself (`cx.claimed`), the owner is
 //! the owner of the store (the repo says it); a module keeps no "current user".
 //!
-//! Not wired yet (B4 switches `root.rs` over and deletes the old ways). `feed` needs the `LocalSet` of the program (it spawns a local task).
+//! Served by `root.rs` as `Guarded<PlanningCore>`. `feed` needs the `LocalSet` of the program (it spawns a local task).
 
 #![allow(clippy::result_large_err)] // `Refusal` is the one refusal type of the contract `ModuleCore`
 
@@ -23,16 +23,14 @@ use fs_objects::{ActivityId, Origin};
 use fs_tasks_core::{TaskItems, TaskRepo};
 use tokio::task::JoinHandle;
 
-use crate::args::Pairs;
+use crate::args::{Pairs, parse_expect, parse_step};
+use crate::changes::{Reverted, UNKNOWN_CHANGE, revert_of, seen, seen_of_head};
 use crate::commands::dispatch;
 use crate::core_conv::{applied, change_ref, clash, refusal_of, refusal_of_error};
 use crate::feed::pump;
-use crate::formsource::{
-    FormSourceImpl, LEVEL, PAGE_MAX, PROVIDER, UNKNOWN_FORM, offset_of, serves,
-    unwatchable_form_why,
+use crate::forms::{
+    LEVEL, PROVIDER, Reading, UNKNOWN_FORM, limit_of, offset_of, serves, unwatchable_form_why,
 };
-use crate::level2::{parse_expect, parse_step, seen};
-use crate::level2_calls::{Reverted, revert_of};
 use crate::root::actor_iri;
 use crate::rules::PlanningRules;
 use crate::scope::scopes_of;
@@ -80,15 +78,15 @@ impl PlanningCore {
     }
 
     /// The readers of the level 1 service over the handle of this connection (one body of reading, not two).
-    fn source(&self, cx: &Context) -> Result<FormSourceImpl, Refusal> {
+    fn source(&self, cx: &Context) -> Result<Reading, Refusal> {
         let origin = Origin::new(
             &cx.claimed.program,
             &cx.claimed.instance,
             &cx.claimed.device,
         );
-        Ok(FormSourceImpl {
+        Ok(Reading {
             repo: Arc::new(self.handle(cx, None)?),
-            origin: Rc::new(RefCell::new(origin)),
+            origin,
         })
     }
 }
@@ -99,13 +97,6 @@ impl Drop for PlanningCore {
             task.abort();
         }
     }
-}
-
-fn limit_of(limit: u32) -> usize {
-    (match limit {
-        0 => PAGE_MAX,
-        n => n.min(PAGE_MAX),
-    }) as usize
 }
 
 fn pairs(args: &[Value]) -> Vec<(String, String)> {
@@ -176,13 +167,7 @@ impl ModuleCore for PlanningCore {
         let record = c.record.unwrap_or_default();
         match dispatch(&repo, &c.command, record, args, expect).await {
             Ok(Ran::Done(done)) => {
-                let head = match &done.head {
-                    Some(h) => seen(&repo, h).await,
-                    None => crate::level2::Seen {
-                        object: String::new(),
-                        undoes: None,
-                    },
-                };
+                let head = seen_of_head(&repo, done.head.as_deref()).await;
                 Ok(applied(&done, &head))
             }
             Ok(Ran::Clash(by, paths)) => Err(clash(&by, &seen(&repo, &by).await, &paths)),
@@ -191,13 +176,7 @@ impl ModuleCore for PlanningCore {
     }
 
     async fn revert(&self, cx: &Context, change: &str, step: StepRef) -> Result<Applied, Refusal> {
-        let unknown = || {
-            refusal_of(&problem(
-                "form-source-unknown-change",
-                "no such change",
-                404,
-            ))
-        };
+        let unknown = || refusal_of(&problem(UNKNOWN_CHANGE, "no such change", 404));
         let id = uuid::Uuid::parse_str(change)
             .ok()
             .and_then(|u| ActivityId::from_uuid(u).ok())
@@ -206,13 +185,7 @@ impl ModuleCore for PlanningCore {
         let repo = self.handle(cx, step.as_ref())?;
         match revert_of(&repo, id).await {
             Reverted::Done(made) => {
-                let head = match &made.head {
-                    Some(h) => seen(&repo, h).await,
-                    None => crate::level2::Seen {
-                        object: String::new(),
-                        undoes: None,
-                    },
-                };
+                let head = seen_of_head(&repo, made.head.as_deref()).await;
                 Ok(applied(&made, &head))
             }
             Reverted::Clash(by, paths) => Err(clash(&by, &seen(&repo, &by).await, &paths)),

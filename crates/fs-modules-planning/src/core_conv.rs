@@ -9,7 +9,7 @@ use fs_objects::Activity;
 use fs_rpc::Problem;
 use fs_types::{BasicValue as _, Utc};
 
-use crate::level2::Seen;
+use crate::changes::Seen;
 use crate::write::Done;
 
 const PREFIX: &str = "form-source-";

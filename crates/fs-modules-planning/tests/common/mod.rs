@@ -1,6 +1,8 @@
 //! Shared by the `FormSource` tests: a real service in a temporary folder, a page of records, a field of a record.
 #![allow(dead_code)]
 
+pub mod suite;
+
 use std::sync::Arc;
 
 use fs_interfaces::common_capnp::cursor;
@@ -21,8 +23,17 @@ pub async fn serve(dir: &std::path::Path) -> (std::path::PathBuf, oneshot::Sende
 pub async fn serve_repo(
     dir: &std::path::Path,
 ) -> (std::path::PathBuf, oneshot::Sender<()>, Arc<TaskRepo>) {
+    serve_for(dir, true).await
+}
+
+/// Like [`serve_repo`]; with `known` false the service knows no person for any connection (every `FormSource` call is refused).
+pub async fn serve_for(
+    dir: &std::path::Path,
+    known: bool,
+) -> (std::path::PathBuf, oneshot::Sender<()>, Arc<TaskRepo>) {
     // the owner of the store comes from the source of the owner, as in `serve`
     let owner = FixedOwner(fs_objects::testing::owner()).owner().unwrap();
+    let person = owner.clone();
     let options = fs_objects::OpenOptions::default().with_owner(owner.clone());
     let store = TursoStore::open_with(dir.join("objects.db"), options)
         .await
@@ -38,9 +49,17 @@ pub async fn serve_repo(
     let (stop, stopped) = oneshot::channel::<()>();
     let service = repo.clone();
     tokio::task::spawn_local(async move {
-        let _ = fs_rpc::serve_callers(bound, Planning::new(service, |_| {}), async {
-            let _ = stopped.await;
-        })
+        let _ = fs_rpc::serve_callers(
+            bound,
+            Planning::new(
+                service,
+                move |_: &fs_rpc::Caller| known.then(|| person.clone()),
+                |_| {},
+            ),
+            async {
+                let _ = stopped.await;
+            },
+        )
         .await;
     });
     (socket, stop, repo)

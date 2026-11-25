@@ -1,38 +1,16 @@
 //! Reading the arguments of a command: text values by path, strict (unknown, doubled, missing or a number place is refused with its reason).
 //!
-//! Pattern: Adapter (the wire values of `FormSource.invoke` as a checked map of text). Every value of a command is text.
+//! Pattern: Adapter (the values of an `Invocation` as a checked map of text). Every value of a command is text.
 
 use std::collections::BTreeMap;
-
-use fs_interfaces::formsource_capnp::value;
 
 use crate::write::{BAD_ARGS, Failure, UID_MAX, boxed};
 
 /// A place by a number is never taken (S1 E3): the caller names the neighbour cards (`after`, `before`).
 const NUMBER_PLACES: [&str; 2] = ["order", "index"];
 
-/// The values of a request as (path, text) pairs: what both ways in (the wire of `FormSource` and the `Invocation` of `Guarded`)
-/// hand to the commands.
+/// The values of a request as (path, text) pairs: what `Guarded` hands to the commands (the `Invocation`).
 pub(crate) type Pairs = [(String, String)];
-
-/// The wire list of values as pairs (a text that is no UTF-8 is `bad-arguments`).
-pub(crate) fn wire_args(
-    list: capnp::struct_list::Reader<'_, value::Owned>,
-) -> Result<Vec<(String, String)>, Failure> {
-    list.iter()
-        .map(|v| {
-            let path = v
-                .get_path()
-                .and_then(|p| p.to_string().map_err(capnp::Error::from))
-                .map_err(|e| bad_wire(&e))?;
-            let text = v
-                .get_text()
-                .and_then(|t| t.to_string().map_err(capnp::Error::from))
-                .map_err(|e| bad_wire(&e))?;
-            Ok((path, text))
-        })
-        .collect()
-}
 
 /// The text values of a request by path. A path that is not in `allowed` or that comes twice is refused with the reason, never
 /// silently dropped.
@@ -85,7 +63,25 @@ pub(crate) fn check_uid(uid: &str) -> Result<(), Failure> {
     Ok(())
 }
 
-#[allow(clippy::unnecessary_box_returns)] // the error type of the argument readers is boxed (a `Problem` is large)
-fn bad_wire(e: &capnp::Error) -> Failure {
-    boxed(BAD_ARGS, e.to_string(), 400)
+/// `expect` as the text of a revision (empty = any).
+pub(crate) fn parse_expect(text: &str) -> Result<Option<u64>, Failure> {
+    if text.is_empty() {
+        return Ok(None);
+    }
+    text.parse()
+        .map(Some)
+        .map_err(|_| boxed(BAD_ARGS, "`expect` is not a revision (decimal text)", 400))
+}
+
+/// `step` as (run, step): both empty = no step; one of them empty is refused.
+pub(crate) fn parse_step(run: &str, step: &str) -> Result<Option<(String, String)>, Failure> {
+    match (run.is_empty(), step.is_empty()) {
+        (true, true) => Ok(None),
+        (false, false) => Ok(Some((run.to_owned(), step.to_owned()))),
+        _ => Err(boxed(
+            BAD_ARGS,
+            "`step.run` and `step.step` are both given or both empty",
+            400,
+        )),
+    }
 }

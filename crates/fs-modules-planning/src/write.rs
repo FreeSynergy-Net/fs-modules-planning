@@ -1,4 +1,4 @@
-//! The three write commands of `FormSource.invoke`, by the capability key of the contract (`card.move`, `task.create`, `task.delete`),
+//! The three write commands of `FormSource.invoke` (run by `PlanningCore::apply`), by the capability key of the contract (`card.move`, `task.create`, `task.delete`),
 //! and the rule of what the asking person `may` do.
 //!
 //! Pattern: Command (one method per command over the core) + Adapter (core errors as problems of the form source). The wire name of a
@@ -8,7 +8,7 @@
 //! `only_me` and no remote clients), and he may do all with his data; `invoke` gives no right that `Tasks` on the same socket does not
 //! give already (`Items.create`/`delete`, `Boards.moveCard`). So `may` ("this person may" in the contract) is what the provider reports
 //! as supported (`TaskItems::capabilities`), nothing more is claimed; rights per person (groups, several users) come later. A command
-//! the provider cannot do is `form-source-forbidden` (403): `formsource.capnp` names no kinds for `invoke`, and the host (SW-5) tells them apart only later, so no new kind `unsupported` (501) is started here.
+//! the provider cannot do is `form-source-forbidden` (403, said by `PlanningRules`): `formsource.capnp` names no kinds for `invoke`, and the host (SW-5) tells them apart only later, so no new kind `unsupported` (501) is started here.
 
 use fs_interfaces::Capabilities;
 use fs_objects::{Activity, Outcome};
@@ -25,7 +25,6 @@ pub(crate) const BAD_ARGS: &str = "form-source-bad-arguments";
 const UNKNOWN_RECORD: &str = "form-source-unknown-record";
 const REJECTED: &str = "form-source-rejected";
 const CONFLICT: &str = "form-source-conflict";
-pub(crate) const FORBIDDEN: &str = "form-source-forbidden";
 const INTERNAL: &str = "form-source-internal";
 
 pub(crate) const UID_MAX: usize = 255;
@@ -118,20 +117,6 @@ pub(crate) fn known(command: &str) -> Result<(), Failure> {
         UNKNOWN_COMMAND,
         format!("no command {command:?}"),
         404,
-    ))
-}
-
-/// `invoke` refuses what `may` does not say, so the two never disagree (the way of the level 1 service; under `Guarded` the
-/// rules say it, see `rules.rs`).
-pub(crate) fn permit(caps: &Capabilities, command: &str) -> Result<(), Failure> {
-    known(command)?;
-    if caps.is_supported(command) {
-        return Ok(());
-    }
-    Err(boxed(
-        FORBIDDEN,
-        format!("{command:?} is not possible here"),
-        403,
     ))
 }
 

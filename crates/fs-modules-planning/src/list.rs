@@ -8,7 +8,7 @@ use fs_tasks_core::TaskItems;
 
 use crate::cards::Card;
 use crate::errors::rpc_error;
-use crate::formsource::FormSourceImpl;
+use crate::forms::Reading;
 use crate::lanes::LANES;
 
 /// One record: its id (`uid`) first, then the values by the field names of the catalog.
@@ -25,7 +25,7 @@ const TASK_STATUS: [&str; 6] = [
 ];
 
 /// The fields of the type `Task` of `rows@1.0.0` that are sent (`catalog/forms.json`: `label`, `order`, the columns): a value of the
-/// shared set (`FormSourceImpl::shared`) that is not one of them stays out.
+/// shared set (`Reading::shared`) that is not one of them stays out.
 const TASK_FIELDS: [&str; 14] = [
     "title",
     "index",
@@ -43,7 +43,7 @@ const TASK_FIELDS: [&str; 14] = [
     "privacy",
 ];
 
-impl FormSourceImpl {
+impl Reading {
     /// One page of `rows@1.0.0` in `scope`: the lanes for `lanes:...`, else the tasks of the board (empty = every board). Returns the
     /// total and the rows from `skip`, at most `limit`.
     pub(crate) async fn list_page(

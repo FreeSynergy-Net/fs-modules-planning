@@ -11,7 +11,8 @@ use std::sync::Arc;
 use fs_interfaces::owner::LocalOwner;
 use fs_objects::{OpenOptions, Store, TursoStore};
 use fs_rpc::{
-    ServerIdentity, ServerOptions, default_data_dir, prepare_data_dir, run_until_signal_callers,
+    FixedPerson, ServerIdentity, ServerOptions, default_data_dir, prepare_data_dir,
+    run_until_signal_callers,
 };
 use fs_tasks_core::TaskRepo;
 
@@ -97,11 +98,13 @@ pub fn serve_with(
         .map_err(io::Error::other)?;
         let store: Arc<dyn Store> = Arc::new(store);
         // The actor of the store itself; every connection writes as its own caller (`Planning::bootstrap`).
+        // one place (ADR 0090): every connection the socket admits acts for the owner, read ONCE above (`LocalPerson` would ask the module person twice)
+        let person = FixedPerson(owner.clone());
         let mut repo = TaskRepo::new(store, actor, owner);
         if let Some(instance) = instance {
             repo = repo.with_instance(instance);
         }
-        let planning = Planning::new(Arc::new(repo), |why| {
+        let planning = Planning::new(Arc::new(repo), person, |why| {
             eprintln!(
                 "fs-modules-planning: connection dropped, the system did not say who it is: {why:?}"
             );

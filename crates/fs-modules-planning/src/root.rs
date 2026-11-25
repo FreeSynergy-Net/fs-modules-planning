@@ -2,19 +2,22 @@
 //!
 //! Pattern: Factory + Adapter — `Planning` builds, for every connection, a root over a view of the store written AS THE CALLER of
 //! that connection (the system says who it is: `SO_PEERCRED` on Unix, the pipe client's token on Windows; never a field a client
-//! sends). The root hands out `Items` and `Boards` and names what it can do.
+//! sends). The root hands out `Items` and `Boards` and names what it can do; next to it, on the same capability, `FormSource` is
+//! served by `Guarded<PlanningCore>` (rights asked by `PlanningRules` before every change, never by this file).
 
 use std::rc::Rc;
 use std::sync::Arc;
 
 use capnp_rpc::new_client;
 use fs_interfaces::tasks_capnp::tasks;
-use fs_rpc::{Caller, CallerError, PerConnection};
+use fs_rpc::{
+    Caller, CallerError, Guarded, OsUserIsPerson, PerConnection, PersonOfConnection, Ports,
+    with_form_source,
+};
 use fs_tasks_core::TaskRepo;
 
 use crate::boards::BoardsImpl;
-use crate::both::both;
-use crate::formsource::FormSourceImpl;
+use crate::core::PlanningCore;
 use crate::items::ItemsImpl;
 
 /// The contract version this service speaks.
@@ -90,18 +93,29 @@ impl tasks::Server for Root {
     }
 }
 
-/// The service: one store, one capability per connection.
+/// The service: one store, one capability per connection. `FormSource` is the one `Guarded<PlanningCore>` of the service, `Tasks` the roots.
 pub struct Planning {
     repo: Arc<TaskRepo>,
+    guarded: Guarded<PlanningCore>,
     refused: Rc<dyn Fn(&CallerError)>,
     /// What lives as long as the service (the heartbeat); dropped with it.
     keep: Vec<Box<dyn std::any::Any>>,
 }
 
 impl Planning {
-    /// Serve `repo`; `refused` is told when the system did not say who is on a connection (that connection is dropped).
-    pub fn new(repo: Arc<TaskRepo>, refused: impl Fn(&CallerError) + 'static) -> Self {
+    /// Serve `repo`; `person` says whom a connection acts for (a connection it does not know gets nothing: 403), `refused` is told when
+    /// the system did not say who is on a connection (that connection is dropped). Who is a person and who a bot: the OS user of the service.
+    ///
+    /// # Panics
+    /// Outside a `LocalSet`: `Guarded::new` starts the pump of the change feed as a local task. Build the service inside the program's `LocalSet`.
+    pub fn new(
+        repo: Arc<TaskRepo>,
+        person: impl PersonOfConnection + 'static,
+        refused: impl Fn(&CallerError) + 'static,
+    ) -> Self {
+        let core = PlanningCore::new(repo.clone());
         Self {
+            guarded: Guarded::new(core, Ports::new(OsUserIsPerson, person)),
             repo,
             refused: Rc::new(refused),
             keep: Vec::new(),
@@ -119,14 +133,9 @@ impl Planning {
 impl PerConnection for Planning {
     fn bootstrap(&mut self, caller: &Caller) -> capnp::capability::Client {
         let repo = Arc::new(self.repo.as_actor(actor_of(caller)));
-        let form =
-            new_client::<fs_interfaces::formsource_capnp::form_source::Client, _>(FormSourceImpl {
-                repo: repo.clone(),
-                origin: Rc::default(),
-            })
-            .client;
+        let form = self.guarded.connect(caller);
         let tasks = new_client::<tasks::Client, _>(Root { repo }).client;
-        both(tasks, form)
+        with_form_source(tasks, form)
     }
 
     fn refused(&mut self, why: &CallerError) {

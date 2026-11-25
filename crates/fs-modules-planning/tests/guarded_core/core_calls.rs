@@ -87,3 +87,23 @@ async fn follows_admits_the_changes_of_the_resolved_board_only() {
         })
         .await;
 }
+
+/// A command that is no command of this module: no right is asked for what does not exist, the core says 404 and nothing is written
+/// (this replaces the table test of the old `permit`, now over the wrapper).
+#[tokio::test(flavor = "current_thread")]
+async fn a_command_the_module_does_not_have_is_404_and_changes_nothing() {
+    LocalSet::new()
+        .run_until(async {
+            let w = world().await;
+            let mut g = fs_rpc::Guarded::new(PlanningCore::new(w.repo.clone()), super::ports());
+            let client = super::open(&mut g);
+            let before = w.repo.list().await.unwrap().len();
+            for command in ["planning.card.move", "card.explode"] {
+                let a = super::common::invoke(&client, command, &w.uids[0], &[]).await;
+                assert!(a.failed, "{command}");
+                assert_eq!(a.kind, "form-source-unknown-command", "{command}");
+            }
+            assert_eq!(w.repo.list().await.unwrap().len(), before);
+        })
+        .await;
+}

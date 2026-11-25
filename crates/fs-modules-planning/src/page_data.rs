@@ -1,14 +1,12 @@
 //! What one page of a form is made of, before it is written to any wire: the rows, the total and what may be done.
 //!
 //! Pattern: Adapter (the board layout and the tasks of the core as rows by the field names of `catalog/forms.json`); the ONE
-//! reading both ways out use: the wire of the level 1 service (`FormSourceImpl::page`) and `PlanningCore::page`.
+//! reading `PlanningCore::page` uses (the wire of `FormSource` is `Guarded`).
 
 use fs_interfaces::Capabilities;
 use fs_tasks_core::TaskItems as _;
 
-use crate::formsource::{
-    FormSourceImpl, PAGE_MAX, UNKNOWN_FORM, serves, serves_rows, unknown_form_why,
-};
+use crate::forms::{Reading, UNKNOWN_FORM, limit_of, serves, serves_rows, unknown_form_why};
 use crate::list::Row;
 use crate::write::{RECORD_COMMANDS, SET_COMMANDS, may, problem};
 
@@ -21,7 +19,7 @@ pub(crate) struct PageData {
     pub(crate) on_set: Vec<&'static str>,
 }
 
-impl FormSourceImpl {
+impl Reading {
     /// The page of `form` in `scope` from `skip`, at most `limit` records (0 = the most). A form this module does not draw is
     /// `unknown-form` 404.
     pub(crate) async fn page_data(
@@ -35,10 +33,7 @@ impl FormSourceImpl {
         if !rows_form && !serves(form) {
             return Err(problem(UNKNOWN_FORM, unknown_form_why(), 404).into_error());
         }
-        let limit = match limit {
-            0 => PAGE_MAX,
-            n => n.min(PAGE_MAX),
-        } as usize;
+        let limit = limit_of(limit);
         let (total, rows) = if rows_form {
             self.list_page(scope, skip, limit).await?
         } else {

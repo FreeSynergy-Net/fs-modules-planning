@@ -1,7 +1,6 @@
 //! The commands of `catalog/commands.json` by their key, on a handle that already writes as the connection.
 //!
-//! Pattern: Command (a key picks one command over the core; Factory Method by key). Both ways in use it: the level 1 service
-//! (`FormSourceImpl::run`, after its own `permit`) and `PlanningCore::apply` (the rights were asked by `Guarded` before).
+//! Pattern: Command (a key picks one command over the core; Factory Method by key). `PlanningCore::apply` runs it (the rights were asked by `Guarded` before).
 
 use fs_tasks_core::TaskRepo;
 

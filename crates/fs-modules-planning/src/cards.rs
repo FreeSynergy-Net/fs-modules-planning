@@ -7,7 +7,7 @@ use std::collections::BTreeSet;
 use fs_tasks_core::{BoardEntry, Boards, Task, TaskEntry, TaskItems};
 
 use crate::errors::rpc_error;
-use crate::formsource::FormSourceImpl;
+use crate::forms::Reading;
 use crate::write::board_named;
 
 /// One card of the layout: its board, column, uid and its position in the column (the read-only `order`).
@@ -21,7 +21,7 @@ pub(crate) struct Card {
     pub(crate) at: usize,
 }
 
-impl FormSourceImpl {
+impl Reading {
     /// The cards of `scope` with each task once (a task on several boards: its first card): what a list of tasks is made of.
     pub(crate) async fn unique_cards(&self, scope: &str) -> capnp::Result<Vec<Card>> {
         let mut seen = BTreeSet::new();
