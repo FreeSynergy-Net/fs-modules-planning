@@ -181,7 +181,11 @@ fn coverage_fails_when_a_kind_the_gap_or_the_milestone_is_missing() {
         .iter_mut()
         .filter(|t| t.uid == plan_uid("design"))
         .for_each(|t| t.related_to.clear());
-    assert!(coverage(&without_start_tie).unwrap_err().contains("StartToStart"));
+    assert!(
+        coverage(&without_start_tie)
+            .unwrap_err()
+            .contains("StartToStart")
+    );
     // No gap: all relations without a lag.
     let mut no_gap = plan;
     for t in &mut no_gap {
