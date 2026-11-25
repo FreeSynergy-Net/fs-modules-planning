@@ -2,7 +2,7 @@
 //!
 //! Pattern: Adapter (the board layout and the tasks of the core, as records by the field names of `catalog/forms.json`).
 
-use fs_tasks_core::{BoardEntry, Boards, TaskItems};
+use fs_tasks_core::{BoardEntry, Boards, Task, TaskItems};
 
 use crate::errors::rpc_error;
 use crate::formsource::FormSourceImpl;
@@ -72,19 +72,30 @@ impl FormSourceImpl {
             ("title", task.title.clone().unwrap_or_default()),
             ("index", at.to_string()),
         ];
-        // RFC 3339 date-time with offset (form art `time`), not the naive JSCalendar LocalDateTime
-        if let Some(due) = self.repo.due_instant(task).map_err(rpc_error)? {
-            row.push(("due", due));
-        }
+        row.extend(self.shared(task)?);
         row.push(("column-label", label.clone()));
         if let Some(limit) = limit {
             row.push(("column-limit", limit.to_string()));
         }
-        if let Some(percent) = task.percent_complete {
-            row.push(("percentComplete", percent.to_string()));
-        }
+        Ok(Some(row))
+    }
+
+    /// What a card and a task row share: `due` as an instant, `percentComplete`, the own channels and the facts of `task`.
+    pub(crate) fn shared(&self, task: &Task) -> capnp::Result<Vec<(&'static str, String)>> {
+        let mut row = Vec::new();
+        // RFC 3339 date-time with offset (form art `time`), not the naive JSCalendar LocalDateTime
+        row.extend(
+            self.repo
+                .due_instant(task)
+                .map_err(rpc_error)?
+                .map(|due| ("due", due)),
+        );
+        row.extend(
+            task.percent_complete
+                .map(|p| ("percentComplete", p.to_string())),
+        );
         row.extend(crate::facts::channels(task));
         row.extend(crate::facts::of(task));
-        Ok(Some(row))
+        Ok(row)
     }
 }

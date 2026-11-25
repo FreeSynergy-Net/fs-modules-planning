@@ -63,5 +63,33 @@
       "order": "number",
       "axis": "text"
     }
+  },
+  {
+    "name": "rows",
+    "version": "1.0.0",
+    "type": "Task",
+    "map": {
+      "items": "Task",
+      "label": "title",
+      "order": "index",
+      "state": "progress",
+      "columns": ["due", "timeZone", "priority", "progress", "taskStatus", "percentComplete", "estimatedDuration", "keywords", "participants", "recurrenceRule", "relatedTo", "privacy"]
+    },
+    "fields": {
+      "title": "text",
+      "index": "number",
+      "due": "date-time",
+      "timeZone": "text",
+      "priority": "number",
+      "progress": "text",
+      "taskStatus": "text",
+      "percentComplete": "number",
+      "estimatedDuration": "text",
+      "keywords": "text",
+      "participants": "text",
+      "recurrenceRule": "text",
+      "relatedTo": "reference",
+      "privacy": "text"
+    }
   }
 ]

@@ -53,5 +53,7 @@ fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev 
 fs-objects = { git = "https://github.com/FreeSynergy-Net/fs-objects", rev = "e38093f1ec61b7c9faaa6f6046f65addb11dcf46", version = "0.0.11", features = ["testing"] }
 # The conformance suite of the contract `module_v1` (fixture trait, rules), the same fs-interfaces source as above.
 fs-module = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "83b96e30ae3f8a04a222fa5a34dc4ad29306cdf2", version = "0.2.0" }
+# The text of a recurrence rule is read back with the same library that holds the rule (`recurrence::RecurrenceRule::parse_rrule`).
+fs-jscalendar = { git = "https://github.com/FreeSynergy-Net/fs-jscalendar", rev = "0a3add97339c92be0ab8b524a294ca44ee8dca25", version = "0.0.7" }
 tempfile = "3"
 tokio = { version = "1", features = ["rt", "net", "sync", "time", "macros"] }
