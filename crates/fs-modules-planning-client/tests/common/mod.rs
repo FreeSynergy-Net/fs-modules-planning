@@ -50,9 +50,17 @@ pub async fn start() -> Service {
     let bound = fs_rpc::bind_socket(&socket).await.unwrap();
     let (stop, stopped) = oneshot::channel::<()>();
     tokio::task::spawn_local(async move {
-        let _ = fs_rpc::serve_callers(bound, Planning::new(repo, |_| {}), async {
-            let _ = stopped.await;
-        })
+        let _ = fs_rpc::serve_callers(
+            bound,
+            Planning::new(
+                repo,
+                fs_rpc::FixedPerson(fs_objects::testing::owner()),
+                |_| {},
+            ),
+            async {
+                let _ = stopped.await;
+            },
+        )
         .await;
     });
     Service {
