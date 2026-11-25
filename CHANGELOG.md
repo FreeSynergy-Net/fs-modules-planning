@@ -4,6 +4,8 @@ Version = tag.
 
 ## Unreleased
 
+- Pin: fs-rpc rev `9aff426a` (was `9585ed18`), fs-person-service rev `9d9a6163` (fs-modules-person main, was `36604aa5`) and fs-interfaces rev `a395979b` (was `83b96e30`; also in fs-tasks-core); one source per library, `cargo tree -d` shows no fs-* duplicate. Written with the help of Claude (Anthropic).
+- Auf Deutsch: Pin: fs-rpc rev `9aff426a` (war `9585ed18`), fs-person-service rev `9d9a6163` (fs-modules-person main, war `36604aa5`) und fs-interfaces rev `a395979b` (war `83b96e30`; auch in fs-tasks-core); eine Quelle je Bibliothek, `cargo tree -d` zeigt kein fs-* Doppeltes. Geschrieben mit Hilfe von Claude (Anthropic).
 - Pin: fs-rpc rev `9585ed18` (was `82d2ba19`; all places, also the dev-deps) and fs-person-service rev `36604aa5` (fs-modules-person main, was `4f24c465`); one fs-rpc in the graph, `cargo tree -d` shows no fs-* duplicate. Written with the help of Claude (Anthropic).
 - Auf Deutsch: Pin: fs-rpc rev `9585ed18` (war `82d2ba19`; an allen Stellen, auch die Dev-Deps) und fs-person-service rev `36604aa5` (fs-modules-person main, war `4f24c465`); ein fs-rpc im Graph, `cargo tree -d` zeigt kein fs-* Doppeltes. Geschrieben mit Hilfe von Claude (Anthropic).
 - Pin: fs-rpc rev `82d2ba19` (was `56f5cc39`) and fs-person-service rev `4f24c465` (was `eee2508a`, which pulled fs-rpc `56f5cc39`); one fs-rpc and one fs-components stand `4c515bf7` in the graph, `cargo tree -d` shows no fs-* duplicate. Written with the help of Claude (Anthropic).
