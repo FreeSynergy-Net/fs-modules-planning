@@ -1,7 +1,7 @@
 //! The suite `module_v1` (level 2) over `Guarded<PlanningCore>` in this process, the check that a command the provider cannot do is
 //! refused before `apply`, and the scope of `follows`. NOT wired into the service yet (Stufe 4 B4 does that and deletes the old ways).
 //!
-//! Pattern: Template Method (`run_conformance` is the order of the rules; this file plugs the subject in, as `fs-rpc` tests/guarded_g8.rs
+//! Pattern: Template Method (`run_conformance` is the order of the rules; this file plugs the subject in, as `fs-rpc` `tests/guarded_g8.rs`
 //! does for `FakeCore`). Counter-proof by Decorator: the same module with rules "everything is allowed" (a wrong Strategy).
 #![cfg(unix)]
 #![allow(clippy::unused_async_trait_impl, clippy::result_large_err)]
