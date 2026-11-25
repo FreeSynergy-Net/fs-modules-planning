@@ -4,7 +4,7 @@
 //! Pattern: Projection (the same tasks as the cards, as rows: the module sends the values of the standard, the frontend chooses the
 //! columns); the scope decides the type, as the form `rows@1.0.0` leaves its meaning to the module.
 
-use fs_tasks_core::{RecurrenceRule, TaskItems};
+use fs_tasks_core::TaskItems;
 
 use crate::cards::Card;
 use crate::errors::rpc_error;
@@ -13,6 +13,16 @@ use crate::lanes::LANES;
 
 /// One record: its id (`uid`) first, then the values by the field names of the catalog.
 pub(crate) type Row = Vec<(&'static str, String)>;
+
+/// The words of `taskStatus` (RFC 10051 section 11.2, STATUS of a task).
+const TASK_STATUS: [&str; 6] = [
+    "NEEDS-ACTION",
+    "IN-PROCESS",
+    "COMPLETED",
+    "CANCELLED",
+    "PENDING",
+    "FAILED",
+];
 
 /// The fields of the type `Task` of `rows@1.0.0` that are sent (`catalog/forms.json`: `label`, `order`, the columns): a value of the
 /// shared set (`FormSourceImpl::shared`) that is not one of them stays out.
@@ -47,13 +57,7 @@ impl FormSourceImpl {
             let rows = lanes.iter().enumerate().skip(skip).take(limit);
             return Ok((lanes.len(), rows.map(|(at, lane)| lane.row(at)).collect()));
         }
-        let mut seen = std::collections::BTreeSet::new();
-        let cards: Vec<Card> = self
-            .cards(scope)
-            .await?
-            .into_iter()
-            .filter(|c| seen.insert(c.uid.clone()))
-            .collect();
+        let cards = self.unique_cards(scope).await?;
         let mut rows = Vec::new();
         for card in cards.iter().skip(skip).take(limit) {
             rows.extend(self.task_row(card).await?);
@@ -73,13 +77,22 @@ impl FormSourceImpl {
             ("index", card.at.to_string()),
         ];
         row.extend(self.shared(task)?);
-        row.extend(task.task_status().map(|s| ("taskStatus", s.to_owned())));
+        // only the six words of RFC 10051 section 11.2 (STATUS of a task); another word is NOT sent
         row.extend(
-            task.recurrence_rule
-                .as_ref()
-                .map(|r| ("recurrenceRule", rrule(r))),
+            task.task_status()
+                .filter(|s| TASK_STATUS.contains(s))
+                .map(|s| ("taskStatus", s.to_owned())),
         );
-        row.extend(task.related_to.keys().map(|uid| ("relatedTo", uid.clone())));
+        // `recurrenceRule` is not sent yet: it comes as soon as fs-jscalendar has the conversion wire form -> typed rule (then
+        // `to_rrule_in(zone)`, UNTIL in UTC); no text is written or guessed here (fail-closed).
+        // `relatedTo`: the contract (`rows@1.0.0`) has no `repeats: relatedTo` yet, so at most ONE value (the first) is sent until
+        // the addition of the contract (fs-interfaces) lands.
+        row.extend(
+            task.related_to
+                .keys()
+                .next()
+                .map(|uid| ("relatedTo", uid.clone())),
+        );
         row.extend(
             task.privacy
                 .as_deref()
@@ -89,61 +102,4 @@ impl FormSourceImpl {
         row.retain(|(path, _)| *path == "uid" || TASK_FIELDS.contains(path));
         Ok(Some(row))
     }
-}
-
-/// The RRULE text (RFC 5545 3.3.10, with `RSCALE` and `SKIP` of RFC 7529) of the rule of the task. The task keeps the rule as the
-/// JSCalendar object of RFC 8984 (the wire form of `fs-jscalendar`), and no original text beside it, so the text is written from it; nothing
-/// is read back or changed.
-fn rrule(r: &RecurrenceRule) -> String {
-    fn list<T: ToString>(out: &mut Vec<String>, name: &str, items: &[T]) {
-        if !items.is_empty() {
-            let joined: Vec<String> = items.iter().map(ToString::to_string).collect();
-            out.push(format!("{name}={}", joined.join(",")));
-        }
-    }
-    let mut parts = Vec::new();
-    parts.extend(
-        r.rscale
-            .as_ref()
-            .map(|v| format!("RSCALE={}", v.to_uppercase())),
-    );
-    parts.push(format!("FREQ={}", r.frequency.to_uppercase()));
-    parts.extend(
-        r.skip
-            .as_ref()
-            .map(|v| format!("SKIP={}", v.to_uppercase())),
-    );
-    parts.extend(r.interval.map(|v| format!("INTERVAL={v}")));
-    parts.extend(r.count.map(|v| format!("COUNT={v}")));
-    parts.extend(
-        r.until
-            .as_ref()
-            .map(|v| format!("UNTIL={}", v.replace(['-', ':'], ""))),
-    );
-    let days: Vec<String> = r
-        .by_day
-        .iter()
-        .map(|d| {
-            format!(
-                "{}{}",
-                d.nth_of_period.map_or_else(String::new, |n| n.to_string()),
-                d.day.to_uppercase()
-            )
-        })
-        .collect();
-    list(&mut parts, "BYDAY", &days);
-    list(&mut parts, "BYMONTHDAY", &r.by_month_day);
-    list(&mut parts, "BYMONTH", &r.by_month);
-    list(&mut parts, "BYYEARDAY", &r.by_year_day);
-    list(&mut parts, "BYWEEKNO", &r.by_week_no);
-    list(&mut parts, "BYHOUR", &r.by_hour);
-    list(&mut parts, "BYMINUTE", &r.by_minute);
-    list(&mut parts, "BYSECOND", &r.by_second);
-    list(&mut parts, "BYSETPOS", &r.by_set_position);
-    parts.extend(
-        r.first_day_of_week
-            .as_ref()
-            .map(|v| format!("WKST={}", v.to_uppercase())),
-    );
-    parts.join(";")
 }

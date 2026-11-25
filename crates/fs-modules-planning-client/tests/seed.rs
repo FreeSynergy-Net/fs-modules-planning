@@ -99,6 +99,13 @@ async fn the_seed_sets_the_values_and_leaves_the_empty_ones_out() {
                 assert_eq!(all(card, "assignee"), s.who, "{} assignee", s.title);
                 assert_eq!(all(card, "progress"), [s.progress], "{} state", s.title);
             }
+            // `due` is sent in UTC: Berlin 12:00 (CET, +01:00) is 11:00Z, a UTC card keeps its clock time
+            let due = |title: &str| {
+                let card = page.iter().find(|c| all(c, "title") == [title]).unwrap();
+                all(card, "due").join(",")
+            };
+            assert_eq!(due("Write the picture report"), "2026-11-26T11:00:00Z");
+            assert_eq!(due("Review the sample pages"), "2026-11-25T17:00:00Z");
             // the card with both people repeats the value; the failed task has the word `failed`
             assert_eq!(
                 page.iter()

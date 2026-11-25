@@ -76,6 +76,39 @@ pub async fn page(
     Ok(out)
 }
 
+/// What the provider says `may` be done: the commands of the page (the set) and of each record, by record id.
+pub async fn may_of(
+    source: &form_source::Client,
+    form: &str,
+    scope: &str,
+) -> (Vec<String>, Vec<(String, Vec<String>)>) {
+    let mut request = source.page_request();
+    {
+        let mut p = request.get();
+        p.set_form(form);
+        p.set_scope(scope);
+        p.set_limit(100);
+        let _: cursor::Builder<'_> = p.init_cursor();
+    }
+    let answer = request.send().promise.await.unwrap();
+    let page = answer.get().unwrap().get_page().unwrap();
+    let texts = |l: capnp::text_list::Reader<'_>| -> Vec<String> {
+        l.iter().map(|t| t.unwrap().to_string().unwrap()).collect()
+    };
+    let records = page
+        .get_records()
+        .unwrap()
+        .iter()
+        .map(|r| {
+            (
+                r.get_id().unwrap().to_string().unwrap(),
+                texts(r.get_may().unwrap()),
+            )
+        })
+        .collect();
+    (texts(page.get_may().unwrap()), records)
+}
+
 pub fn field<'a>(row: &'a (String, String, Vec<(String, String)>), name: &str) -> &'a str {
     row.2
         .iter()

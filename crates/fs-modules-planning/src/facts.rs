@@ -34,21 +34,23 @@ pub(crate) fn channels(task: &Task) -> Vec<(&'static str, String)> {
     out
 }
 
+/// The five status words of RFC 8984 5.2.5, in the order of the RFC (the one list: `state_word` and the lanes use it).
+pub(crate) const STATES: [&str; 5] = [
+    "needs-action",
+    "in-process",
+    "completed",
+    "failed",
+    "cancelled",
+];
+
 /// The status word of the task (RFC 8984 section 5.2.5, `effective_progress()`): one of the five words of the RFC, or a vendor word
 /// `<domain>:<name>`. A stored word that is neither is NOT sent (no value; nothing is guessed or mapped to another status).
 pub(crate) fn state_word(task: &Task) -> Option<String> {
-    const WORDS: [&str; 5] = [
-        "needs-action",
-        "in-process",
-        "completed",
-        "failed",
-        "cancelled",
-    ];
     let word = task.effective_progress();
     let vendor = word
         .split_once(':')
         .is_some_and(|(domain, name)| !domain.is_empty() && !name.is_empty());
-    (WORDS.contains(&word) || vendor).then(|| word.to_owned())
+    (STATES.contains(&word) || vendor).then(|| word.to_owned())
 }
 
 /// The IRI of each person in charge (`Task::assignees()`, the one place that says "responsible"), in the order of the participant keys (a map: lexicographic, `p10` before `p2`): the actor IRI

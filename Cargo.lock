@@ -698,7 +698,6 @@ dependencies = [
  "capnp",
  "capnp-rpc",
  "fs-interfaces",
- "fs-jscalendar",
  "fs-module",
  "fs-modules-planning-client",
  "fs-objects",

@@ -175,7 +175,7 @@ pub(crate) async fn watch(
     let p = params.get()?;
     let form = p.get_form()?.to_str()?;
     if !serves(form) {
-        let why = crate::formsource::unknown_form_why();
+        let why = crate::formsource::unwatchable_form_why();
         return Err(problem(crate::formsource::UNKNOWN_FORM, why, 404).into_error());
     }
     let scope = p.get_scope()?.to_string()?;

@@ -47,9 +47,14 @@ pub const PAGE_MAX: u32 = 500;
 
 pub(crate) const UNKNOWN_FORM: &str = "form-source-unknown-form";
 
-/// The text of the problem for a form this module does not serve (one place for `page` and `watch`).
+/// The text of the problem for a form `page` does not serve.
 pub(crate) fn unknown_form_why() -> String {
     format!("this module draws {FORM_CARDS} (and 1.3, 1.2, 1.1, 1.0 for reading) and {FORM_ROWS}")
+}
+
+/// The text of the problem for a form `watch` and `changes` do not serve (they follow the cards only, not `rows@1.0.0`).
+pub(crate) fn unwatchable_form_why() -> String {
+    format!("this module lets you follow {FORM_CARDS} (and 1.3, 1.2, 1.1, 1.0), not {FORM_ROWS}")
 }
 
 pub(crate) struct FormSourceImpl {
@@ -114,7 +119,12 @@ impl form_source::Server for FormSourceImpl {
         let end = (skip + limit).min(total);
         // what the provider supports, for a record and for the set (a new card); the same table `invoke` is held to
         let caps = self.repo.capabilities();
-        let (on_record, on_set) = (may(&caps, &RECORD_COMMANDS), may(&caps, &SET_COMMANDS));
+        // the lanes are not cards: no command is offered at a lane record or at the list of lanes
+        let (on_record, on_set) = if rows_form && scope.starts_with(crate::lanes::LANES) {
+            (Vec::new(), Vec::new())
+        } else {
+            (may(&caps, &RECORD_COMMANDS), may(&caps, &SET_COMMANDS))
+        };
         let mut out = results.get();
         {
             let mut page = out.reborrow().init_page();

@@ -2,7 +2,9 @@
 //!
 //! Pattern: Adapter (the board layout and the tasks of the core, as records by the field names of `catalog/forms.json`).
 
-use fs_tasks_core::{BoardEntry, Boards, Task, TaskItems};
+use std::collections::BTreeSet;
+
+use fs_tasks_core::{BoardEntry, Boards, Task, TaskEntry, TaskItems};
 
 use crate::errors::rpc_error;
 use crate::formsource::FormSourceImpl;
@@ -20,6 +22,25 @@ pub(crate) struct Card {
 }
 
 impl FormSourceImpl {
+    /// The cards of `scope` with each task once (a task on several boards: its first card): what a list of tasks is made of.
+    pub(crate) async fn unique_cards(&self, scope: &str) -> capnp::Result<Vec<Card>> {
+        let mut seen = BTreeSet::new();
+        let cards = self.cards(scope).await?;
+        Ok(cards
+            .into_iter()
+            .filter(|c| seen.insert(c.uid.clone()))
+            .collect())
+    }
+
+    /// The tasks on the boards in `scope` (empty = every board), each once.
+    pub(crate) async fn tasks_of(&self, scope: &str) -> capnp::Result<Vec<TaskEntry>> {
+        let mut out = Vec::new();
+        for card in self.unique_cards(scope).await? {
+            out.extend(self.repo.get_by_uid(&card.uid).await.map_err(rpc_error)?);
+        }
+        Ok(out)
+    }
+
     /// The cards of the boards in `scope` (empty = every board), in the order of the layout: column by column, as `(board name,
     /// column id, uid)`. Only the layout is read here; the tasks of one page are read by [`Self::row`].
     pub(crate) async fn cards(&self, scope: &str) -> capnp::Result<Vec<Card>> {

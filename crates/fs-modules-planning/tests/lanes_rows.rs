@@ -6,7 +6,7 @@
 
 mod common;
 
-use common::{field, page, serve_repo};
+use common::{field, may_of, page, serve_repo};
 use fs_interfaces::formsource_capnp::form_source;
 use fs_interfaces::tasks_capnp::tasks;
 use fs_tasks_core::model::ActorType;
@@ -93,6 +93,84 @@ async fn lanes_come_from_the_axis_and_the_stored_ones_come_first() {
             assert_eq!(field(&rows[0], "label"), ZED);
             assert_eq!(field(&rows[2], "order"), "2");
             assert_eq!(field(&rows[2], "axis"), "assignee");
+            // a lane is not a card: nothing may be done at a lane record or at the list of lanes
+            for scope in ["lanes:state", "lanes:assignee:work", "lanes:lane"] {
+                let (set, records) = may_of(&source.client, ROWS, scope).await;
+                assert!(set.is_empty(), "{scope} set");
+                assert!(!records.is_empty());
+                assert!(records.iter().all(|(_, m)| m.is_empty()), "{scope}");
+            }
+            // the lanes stored at the board for the axes `state` and `lane` come first
+            let entry = repo
+                .boards()
+                .await
+                .unwrap()
+                .into_iter()
+                .find(|b| b.board.name == "work")
+                .unwrap();
+            let mut board = entry.board.clone();
+            board.lanes.insert("assignee".into(), vec![ZED.into()]);
+            repo.board_edit(entry.id, entry.revision(), board)
+                .await
+                .unwrap();
+
+            // status: the five words of the RFC in order
+            let five = [
+                "needs-action",
+                "in-process",
+                "completed",
+                "failed",
+                "cancelled",
+            ];
+            assert_eq!(ids(&source.client, "lanes:state").await, five);
+            // people: the stored lane first (empty), then everyone in charge of a task of the board, each once
+            assert_eq!(
+                ids(&source.client, "lanes:assignee:work").await,
+                [ZED, ADA, BOB]
+            );
+            // no board named = every board: the stored lane of `work` is still there
+            assert_eq!(ids(&source.client, "lanes:assignee").await, [ZED, ADA, BOB]);
+            // boards: all, or the one named
+            assert_eq!(ids(&source.client, "lanes:lane").await.len(), 2);
+            assert_eq!(ids(&source.client, "lanes:lane:home").await, ["home"]);
+            // the record: name, place and axis
+            let rows = page(&source.client, ROWS, "lanes:assignee:work")
+                .await
+                .unwrap();
+            assert_eq!(field(&rows[0], "label"), ZED);
+            assert_eq!(field(&rows[2], "order"), "2");
+            assert_eq!(field(&rows[2], "axis"), "assignee");
+            // a lane is not a card: nothing may be done at a lane record or at the list of lanes
+            for scope in ["lanes:state", "lanes:assignee:work", "lanes:lane"] {
+                let (set, records) = may_of(&source.client, ROWS, scope).await;
+                assert!(set.is_empty(), "{scope} set");
+                assert!(!records.is_empty());
+                assert!(records.iter().all(|(_, m)| m.is_empty()), "{scope}");
+            }
+            // the lanes stored at the board for the axes `state` and `lane` come first
+            let entry = repo
+                .boards()
+                .await
+                .unwrap()
+                .into_iter()
+                .find(|b| b.board.name == "work")
+                .unwrap();
+            let mut board = entry.board.clone();
+            board
+                .lanes
+                .insert("state".into(), vec!["acme.example:waiting".into()]);
+            board.lanes.insert("lane".into(), vec!["archive".into()]);
+            repo.board_edit(entry.id, entry.revision(), board)
+                .await
+                .unwrap();
+            assert_eq!(
+                ids(&source.client, "lanes:state:work").await[..2],
+                ["acme.example:waiting", "needs-action"]
+            );
+            assert_eq!(
+                ids(&source.client, "lanes:lane:work").await,
+                ["archive", "work"]
+            );
             // an axis that does not exist, and a form that is not served
             assert!(page(&source.client, ROWS, "lanes:colour").await.is_err());
             assert!(
@@ -158,6 +236,18 @@ async fn a_task_is_a_row_with_the_standard_columns() {
                 add.send().promise.await.unwrap();
             }
 
+            let mut odd = Task::new("Odd");
+            odd.set_task_status("MAYBE");
+            let mut add = items.create_request();
+            add.get()
+                .set_jscalendar(odd.to_value().to_string().as_str());
+            add.send().promise.await.unwrap();
+
+            // the tasks of the list may be moved and deleted, and the list may get a new task
+            let (set, records) = may_of(&source.client, ROWS, "work").await;
+            assert!(set.iter().any(|k| k.contains("create")), "{set:?}");
+            assert!(records.iter().all(|(_, m)| !m.is_empty()));
+
             let rows = page(&source.client, ROWS, "work").await.unwrap();
             let all = |title: &str, path: &str| -> Vec<String> {
                 let row = rows.iter().find(|r| field(r, "title") == title).unwrap();
@@ -176,13 +266,12 @@ async fn a_task_is_a_row_with_the_standard_columns() {
             assert_eq!(all("Full", "taskStatus"), ["PENDING"]);
             assert_eq!(all("Full", "privacy"), ["private"]);
             assert_eq!(all("Full", "participants"), ["Ada"]);
-            // the value repeats: one per related task
-            assert_eq!(all("Full", "relatedTo"), ["urn:uuid:a", "urn:uuid:b"]);
-            // the text of the rule reads back with the library that holds the rule
-            let text = all("Full", "recurrenceRule").remove(0);
-            assert_eq!(text, "FREQ=MONTHLY;INTERVAL=2;COUNT=3;BYDAY=MO,2FR");
-            fs_jscalendar::recurrence::RecurrenceRule::parse_rrule(&text)
-                .expect("RRULE text of the rule");
+            // the contract has no `repeats: relatedTo` for rows yet: at most the first related task is sent
+            assert_eq!(all("Full", "relatedTo"), ["urn:uuid:a"]);
+            // the rule is not sent yet (no conversion wire form -> typed rule in fs-jscalendar): nothing is written or guessed
+            assert_eq!(all("Full", "recurrenceRule").len(), 0);
+            // a status word that is not one of the six of RFC 10051 is not sent
+            assert_eq!(all("Odd", "taskStatus").len(), 0);
             // what the type does not name stays out (a card's `column`, the `description` ...); a bare task has only what is always there
             assert_eq!(all("Full", "column").len(), 0);
             for path in [

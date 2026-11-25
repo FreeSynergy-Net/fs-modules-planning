@@ -10,25 +10,15 @@
 
 use std::collections::BTreeSet;
 
-use fs_tasks_core::{BoardEntry, Boards, TaskEntry, TaskItems};
+use fs_tasks_core::{BoardEntry, Boards, Task};
 
-use crate::cards::Card;
 use crate::errors::rpc_error;
-use crate::facts::{assignees, state_word};
+use crate::facts::{STATES, assignees, state_word};
 use crate::formsource::FormSourceImpl;
 use crate::write::{UNKNOWN_SCOPE, board_named, problem};
 
 /// The scope prefix that selects the lane list of `rows@1.0.0`.
 pub(crate) const LANES: &str = "lanes:";
-
-/// The five status words of RFC 8984 5.2.5, in the order of the RFC.
-const STATES: [&str; 5] = [
-    "needs-action",
-    "in-process",
-    "completed",
-    "failed",
-    "cancelled",
-];
 
 /// What the lanes of a list are grouped by.
 #[derive(Clone, Copy)]
@@ -108,7 +98,7 @@ impl FormSourceImpl {
                     STATES
                         .map(str::to_owned)
                         .into_iter()
-                        .chain(vendor_states(&tasks))
+                        .chain(vendor_states(tasks.iter().map(|t| &t.task)))
                         .collect()
                 } else {
                     tasks.iter().flat_map(|t| assignees(&t.task)).collect()
@@ -122,25 +112,38 @@ impl FormSourceImpl {
             .map(|id| Lane { id, axis })
             .collect())
     }
-
-    /// The tasks on the boards in `scope` (empty = every board), each once.
-    pub(crate) async fn tasks_of(&self, scope: &str) -> capnp::Result<Vec<TaskEntry>> {
-        let mut seen = BTreeSet::new();
-        let mut out = Vec::new();
-        for Card { uid, .. } in self.cards(scope).await? {
-            if seen.insert(uid.clone()) {
-                out.extend(self.repo.get_by_uid(&uid).await.map_err(rpc_error)?);
-            }
-        }
-        Ok(out)
-    }
 }
 
 /// The vendor status words (`<domain>:<name>`) of the tasks, sorted: the five of the RFC are listed first by the caller.
-fn vendor_states(tasks: &[TaskEntry]) -> BTreeSet<String> {
+fn vendor_states<'a>(tasks: impl Iterator<Item = &'a Task>) -> BTreeSet<String> {
     tasks
-        .iter()
-        .filter_map(|t| state_word(&t.task))
+        .filter_map(state_word)
         .filter(|w| !STATES.contains(&w.as_str()))
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Pattern: Object Mother (tasks with a status word, built in memory: the validator of the store takes no vendor word).
+    fn with(progress: &str) -> Task {
+        let mut task = Task::new("t");
+        task.progress = Some(progress.into());
+        task
+    }
+
+    #[test]
+    fn vendor_words_are_listed_once_and_the_rest_is_left_out() {
+        let tasks = [
+            with("acme.example:review"),
+            with("acme.example:review"),
+            with("completed"),
+            with("bogus"),
+            with("acme.example:"),
+            with("zeta.example:late"),
+        ];
+        let got: Vec<String> = vendor_states(tasks.iter()).into_iter().collect();
+        assert_eq!(got, ["acme.example:review", "zeta.example:late"]);
+    }
 }
