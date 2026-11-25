@@ -27,7 +27,7 @@ async fn ids(source: &form_source::Client, scope: &str) -> Vec<String> {
 async fn lanes_come_from_the_axis_and_the_stored_ones_come_first() {
     let dir = tempfile::Builder::new().prefix("fs").tempdir().unwrap();
     LocalSet::new()
-        .run_until(async {
+        .run_until(Box::pin(async {
             let (socket, _stop, repo) = serve_repo(dir.path()).await;
             let source = fs_rpc::connect::<form_source::Client>(&socket)
                 .await
@@ -105,7 +105,7 @@ async fn lanes_come_from_the_axis_and_the_stored_ones_come_first() {
                     .await
                     .is_err()
             );
-        })
+        }))
         .await;
 }
 
@@ -113,7 +113,7 @@ async fn lanes_come_from_the_axis_and_the_stored_ones_come_first() {
 async fn a_task_is_a_row_with_the_standard_columns() {
     let dir = tempfile::Builder::new().prefix("fs").tempdir().unwrap();
     LocalSet::new()
-        .run_until(async {
+        .run_until(Box::pin(async {
             let (socket, _stop, _repo) = serve_repo(dir.path()).await;
             let source = fs_rpc::connect::<form_source::Client>(&socket)
                 .await
@@ -198,6 +198,6 @@ async fn a_task_is_a_row_with_the_standard_columns() {
                 assert_eq!(all("Bare", path).len(), 0, "{path}");
             }
             assert_eq!(all("Bare", "progress"), ["needs-action"]);
-        })
+        }))
         .await;
 }
