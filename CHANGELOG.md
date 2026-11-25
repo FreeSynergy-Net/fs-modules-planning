@@ -4,6 +4,8 @@ Version = tag.
 
 ## Unreleased
 
+- Pin follow-up: fs-rpc rev `aa59c6bd` (was `459c1e8d`; SettingsCore change in fs-settings-rpc) and fs-modules-person rev `3ad143ce` (was `58e0eff5`; branch `unreviewed/pin-rpc-aa59c6bd-person`, same fs-rpc). `cargo tree -d` shows no fs-* duplicate. Only pins, no code. Written with the help of Claude (Anthropic).
+- Auf Deutsch: Pin-Folge: fs-rpc rev `aa59c6bd` (war `459c1e8d`; Änderung an SettingsCore in fs-settings-rpc) und fs-modules-person rev `3ad143ce` (war `58e0eff5`; Zweig `unreviewed/pin-rpc-aa59c6bd-person`, derselbe fs-rpc). `cargo tree -d` zeigt kein fs-* doppelt. Nur Pins, kein Code. Geschrieben mit Hilfe von Claude (Anthropic).
 - Pin follow-up: fs-rpc rev `459c1e8d` (was `8cb7f9a5`), fs-modules-person rev `58e0eff5` (was `5dfaab1a`; both branches, same trees as main after landing) and fs-interfaces/fs-module rev `76df5407` (was `4f6c3281`). `cargo tree -d` shows no fs-* duplicate. Only pins, no code. Written with the help of Claude (Anthropic).
 - Auf Deutsch: Pin-Folge: fs-rpc rev `459c1e8d` (war `8cb7f9a5`), fs-modules-person rev `58e0eff5` (war `5dfaab1a`; beides Zweige, nach der Landung dieselben Stände wie main) und fs-interfaces/fs-module rev `76df5407` (war `4f6c3281`). `cargo tree -d` zeigt kein fs-* doppelt. Nur Pins, kein Code. Geschrieben mit Hilfe von Claude (Anthropic).
 - Pin: fs-rpc rev `8cb7f9a5` (main; was `b279f428`) and fs-modules-person rev `5dfaab1a` (branch `unreviewed/pin-rpc-8cb7f9a5-person`, same tree as person main after landing; was `544d5283`), so there is one fs-rpc in the graph. `cargo tree -d` shows no fs-* duplicate. Only pins, no code. Written with the help of Claude (Anthropic).
