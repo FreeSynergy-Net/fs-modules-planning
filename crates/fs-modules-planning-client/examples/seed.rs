@@ -49,6 +49,7 @@ const fn card(
 
 /// The cards: priority 1, 2, 3, 5, 9 and one without; the durations PT30M, PT1H, PT2H30M, PT4H and two without; the zone Europe/Berlin on
 /// two cards, one floating, the rest UTC; one card with both people, one with Ada, the others with nobody; one failed task.
+#[must_use]
 pub fn cards() -> Vec<Seed> {
     vec![
         Seed {
@@ -155,6 +156,7 @@ pub async fn seed(conn: &tasks::Client, p: &mut Planning) {
     }
 }
 
+#[allow(clippy::missing_panics_doc)]
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     let mut a = std::env::args().skip(1);
