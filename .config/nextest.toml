@@ -1,6 +1,6 @@
 # cargo-nextest profiles for fs-modules-planning (workflow testlauf, CLAUDE.md §4: little but often). Vorlage fs-components 216594c0.
 # Geprüft mit `cargo nextest list` (C4 Batch 2). Muster: fs-rpc .config/nextest.toml.
-# Stufen: quick (alles ausser CI-only) | release (nur CI, alles). Keine eindeutigen Namen für security/time/socket/platform/picture.
+# Stufen: quick (alles ausser CI-only) | security (owner, person_owner, strict; additiv) | release (nur CI, alles). Keine eindeutigen Namen für time/socket/platform/picture.
 
 [profile.default]
 fail-fast = false
@@ -9,6 +9,13 @@ fail-fast = false
 fail-fast = true
 retries = 0
 slow-timeout = { period = "30s", terminate-after = 4 }
+
+# Security (Eigentümer nie anonym, unbekannte/doppelte Argumente abgelehnt; CLAUDE.md §4 harte Grenze 2). Additiv: quick bleibt unverändert und enthält diese Tests weiter.
+[profile.security]
+default-filter = "binary(/^(owner|person_owner|strict)$/)"
+fail-fast = false
+retries = 0
+slow-timeout = { period = "60s", terminate-after = 5 }
 
 [profile.release]
 fail-fast = false
