@@ -1,0 +1,25 @@
+# Release of the module `planning` on a version tag (fs-release caller, pinned): ONE arch RPM `fs-module-planning` (kind module).
+name: release
+on:
+  push: { tags: ["v*"] }
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+  packages: write
+jobs:
+  release:
+    uses: FreeSynergy-Net/fs-release/.github/workflows/release.yml@ccb018e91d8ee12e4b804225b8226b50a129ab6e
+    with:
+      kind: module
+      # `name` is the HOST module name (RPM = fs-module-planning), not the repo name; `binaries` is exactly the one service.
+      name: planning
+      binaries: fs-modules-planning
+      cargo-package: fs-modules-planning
+      # The test variant with a fixed owner (feature fake-owner) is never shipped.
+      ignore-binaries: fs-modules-planning-fixed-owner
+      macos: false
+      windows-targets: ""
+    secrets:
+      GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+      GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
