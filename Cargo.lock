@@ -693,7 +693,7 @@ dependencies = [
 
 [[package]]
 name = "fs-modules-planning"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -713,7 +713,7 @@ dependencies = [
 
 [[package]]
 name = "fs-modules-planning-client"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -780,7 +780,7 @@ dependencies = [
 
 [[package]]
 name = "fs-rank"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "fracindex",
  "thiserror",
@@ -808,7 +808,7 @@ dependencies = [
 
 [[package]]
 name = "fs-tasks-core"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "async-trait",
  "capnp",

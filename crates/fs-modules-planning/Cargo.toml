@@ -30,9 +30,9 @@ fake-owner = ["fs-interfaces/fake"]
 
 [dependencies]
 # The core is used without its `contract` feature: the service needs none of its filter conversion.
-fs-tasks-core = { path = "../fs-tasks-core", version = "0.0.4" }
+fs-tasks-core = { path = "../fs-tasks-core", version = "0.0.5" }
 # The one place of the module name (socket, catalog, data folder): the client says it, the service uses it.
-fs-modules-planning-client = { path = "../fs-modules-planning-client", version = "0.0.4" }
+fs-modules-planning-client = { path = "../fs-modules-planning-client", version = "0.0.5" }
 # One source per library: the same tags as the core and fs-rpc (v0.1.3 has fs-interfaces v0.1.0).
 fs-rpc = { git = "https://github.com/FreeSynergy-Net/fs-rpc", rev = "0f639470a7c1e5bbae5f84fbbbb41bf2504c232a", version = "0.1.4" }
 fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "ad56e2f4b953ebf51d41bb7aec8202dfafebdfac", version = "0.2.0" }

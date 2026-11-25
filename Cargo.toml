@@ -7,7 +7,7 @@ members = ["crates/fs-rank", "crates/fs-tasks-core", "crates/fs-modules-planning
 exclude = ["crates/fs-tasks-server", "crates/fs-tasks-testdata", "crates/fs-tasks-local"]
 
 [workspace.package]
-version = "0.0.4"
+version = "0.0.5"
 authors = ["FreeSynergy <support@freesynergy.net>"]
 repository = "https://github.com/FreeSynergy/fs-modules-planning"
 edition = "2024"

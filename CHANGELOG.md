@@ -4,6 +4,8 @@ Version = tag.
 
 ## 0.0.5
 
+- Version 0.0.5 (version = tag): workspace version, the path dependencies between the crates and the release entry in `metainfo.xml` are `0.0.5`; `fs:provides` stays `planning@0.0.3` (= `catalog/commands.json`). Written with the help of Claude (Anthropic).
+- Auf Deutsch: Version 0.0.5 (Version = Tag): Workspace-Version, Pfad-Abhaengigkeiten zwischen den Crates und Release-Eintrag in `metainfo.xml` sind `0.0.5`; `fs:provides` bleibt `planning@0.0.3` (= `catalog/commands.json`). Geschrieben mit Hilfe von Claude (Anthropic).
 - Note: 0.0.5 is the first version that is delivered; v0.0.4 was a failed release run (pin lag: two levels of fs-release pins behind), the tag stays as a dead tag. Pin: fs-release callers `release.yml`, `check.yml`, `windows.yml` to `05a4a6a4` (the release fix; `check-pin-chain` green at this commit). Written with the help of Claude (Anthropic).
 - Auf Deutsch: Hinweis: 0.0.5 ist die erste ausgelieferte Version; v0.0.4 war ein fehlgeschlagener Release-Lauf (Pin-Rueckstand: zwei Ebenen der fs-release-Pins hinterher), der Tag bleibt als toter Tag stehen. Pin: fs-release-Aufrufer `release.yml`, `check.yml`, `windows.yml` auf `05a4a6a4` (der Release-Fix; `check-pin-chain` gruen an diesem Commit). Geschrieben mit Hilfe von Claude (Anthropic).
 - Pin: fs-rpc rev `0f639470` (was `9aff426a`; also fs-trusted-path), fs-person-service rev `157f10ca` (fs-modules-person main, was `9d9a6163`) and fs-interfaces rev `ad56e2f4` (was `a395979b`; also in fs-tasks-core); one source per library, `cargo tree -d` shows no fs-* duplicate; fs-components is not in the graph. Written with the help of Claude (Anthropic).

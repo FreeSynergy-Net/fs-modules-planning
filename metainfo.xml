@@ -12,6 +12,6 @@
     <value key="fs:needs">person@~0.0.1</value>
   </custom>
   <releases>
-    <release version="0.0.4"/>
+    <release version="0.0.5"/>
   </releases>
 </component>
