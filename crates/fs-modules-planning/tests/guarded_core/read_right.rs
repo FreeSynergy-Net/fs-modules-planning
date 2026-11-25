@@ -11,11 +11,10 @@ use fs_modules_planning::{PlanningCore, PlanningRules};
 use fs_rpc::{Caller as Peer, Guarded, Ports};
 use tokio::task::LocalSet;
 
-use super::fixture::{FORM, world};
+use super::fixture::{FORM, World, world};
 use super::{OWNER, open};
 
-async fn rows_for(actor: fn() -> Actor, caps: Capabilities) -> Vec<String> {
-    let w = world().await;
+async fn rows_for(w: &World, actor: fn() -> Actor, caps: Capabilities) -> Vec<String> {
     let core = PlanningCore::with_rules(w.repo.clone(), PlanningRules::new(caps));
     let ports = Ports::new(move |_: &Peer| actor(), |_: &Peer| Some(person(OWNER)));
     let mut g = Guarded::new(core, ports);
@@ -30,10 +29,10 @@ async fn the_page_is_readable_through_guarded_and_not_empty() {
     LocalSet::new()
         .run_until(async {
             let w = world().await;
-            let ids = rows_for(|| Actor::Person, Capabilities::new("fs-tasks")).await;
+            let ids = rows_for(&w, || Actor::Person, Capabilities::new("fs-tasks")).await;
             assert!(
-                !ids.is_empty(),
-                "form.read must be allowed: the page is empty"
+                ids.len() >= 3,
+                "form.read must be allowed: the page is empty: {ids:?}"
             );
             for uid in &w.uids {
                 assert!(ids.contains(uid), "{uid} missing in {ids:?}");
@@ -46,9 +45,10 @@ async fn the_page_is_readable_through_guarded_and_not_empty() {
 async fn a_caller_that_is_not_a_person_reads_what_the_rules_say_the_same_as_the_owner() {
     LocalSet::new()
         .run_until(async {
-            let owner = rows_for(|| Actor::Person, Capabilities::new("fs-tasks")).await;
-            let bot = rows_for(|| Actor::Bot, Capabilities::new("fs-tasks")).await;
-            assert!(!bot.is_empty());
+            let w = world().await;
+            let owner = rows_for(&w, || Actor::Person, Capabilities::new("fs-tasks")).await;
+            let bot = rows_for(&w, || Actor::Bot, Capabilities::new("fs-tasks")).await;
+            assert!(bot.len() >= 3, "{bot:?}");
             let mut a = owner.clone();
             let mut b = bot.clone();
             a.sort();
