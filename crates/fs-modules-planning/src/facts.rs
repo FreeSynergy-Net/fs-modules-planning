@@ -190,12 +190,21 @@ mod channel_tests {
             task.progress = Some(word.into());
             assert_eq!(named(&task, "progress"), [word]);
         }
-        task.progress = Some("done".into());
-        assert_eq!(
-            named(&task, "progress"),
-            ["needs-action"],
-            "a word of nobody is not a state"
-        );
+        for bad in ["done", "COMPLETED", "x:", ":y"] {
+            task.progress = Some(bad.into());
+            assert_eq!(
+                named(&task, "progress").len(),
+                0,
+                "{bad} is not a state, so it is not sent"
+            );
+        }
+        // no stored word: derived after RFC 8984 5.2.5 from the participants
+        task.progress = None;
+        let mut done = fs_tasks_core::Participant::default();
+        done.extra
+            .insert("progress".into(), serde_json::json!("completed"));
+        task.participants.insert("p1".into(), done);
+        assert_eq!(named(&task, "progress"), ["completed"]);
     }
 
     #[test]
