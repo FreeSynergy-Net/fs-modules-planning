@@ -54,16 +54,26 @@ fn the_program_starts_and_serves_when_me_exists() {
     let mut child = home.command().spawn().unwrap();
     local(async {
         let until = Instant::now() + Duration::from_secs(30);
-        while fs_rpc::connect::<tasks::Client>(&home.planning_socket())
-            .await
-            .is_err()
-        {
-            assert!(Instant::now() < until, "the program did not come up");
+        // "Up" means: the socket accepts AND the heartbeat answers. The service opens its heartbeat as the first step after binding
+        // (serve.rs `start_beat`), but a caller can still be quicker than that one step, so both are waited for with the same limit
+        // (the old test asked the heartbeat once, the moment the socket accepted, and was red when it was not there yet).
+        loop {
+            let served = fs_rpc::connect::<tasks::Client>(&home.planning_socket())
+                .await
+                .is_ok();
+            if served
+                && fs_rpc::ask_beat(&home.planning_socket(), Duration::from_secs(2))
+                    .await
+                    .is_ok()
+            {
+                break;
+            }
+            assert!(
+                Instant::now() < until,
+                "the program did not come up (socket accepts: {served}, heartbeat answers: no)"
+            );
             tokio::time::sleep(Duration::from_millis(100)).await;
         }
-        fs_rpc::ask_beat(&home.planning_socket(), Duration::from_secs(2))
-            .await
-            .expect("the heartbeat answers");
     });
     assert!(child.try_wait().unwrap().is_none(), "it keeps serving");
     let _ = child.kill();

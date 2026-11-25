@@ -86,6 +86,8 @@ pub fn serve_with(
     let beat_socket = socket.clone();
     let identity = ServerIdentity::new("fs-modules-planning", env!("CARGO_PKG_VERSION"));
     let served = run_until_signal_callers(&socket, identity, || async move {
+        // The heartbeat FIRST, before the slow part (the store): a caller that sees the socket then finds the heartbeat too.
+        let beat = start_beat(&beat_socket)?;
         let data = prepare_data_dir(&data)?;
         let store = TursoStore::open_with(
             data.join("objects.db"),
@@ -104,7 +106,7 @@ pub fn serve_with(
                 "fs-modules-planning: connection dropped, the system did not say who it is: {why:?}"
             );
         });
-        keep_beat(planning, &beat_socket)
+        Ok(planning.keeping(beat))
     });
     match served {
         Ok(()) => 0,
@@ -119,11 +121,17 @@ pub fn serve_with(
     }
 }
 
-/// The heartbeat of the service (ADR 0104, a duty of every module service): started once the socket is bound, kept as long as the
-/// service serves, and ticked every second by the loop that serves, so a loop that stands still is told apart from a healthy one.
-/// The heartbeat of fs-rpc is Unix only; on Windows there is none yet and the service serves without it.
+/// The heartbeat of the service (ADR 0104, a duty of every module service): started as the first thing once the socket is bound
+/// (before the store is opened, which is the slow part), so a caller that finds the socket finds the heartbeat too; kept as long
+/// as the service serves, and ticked every second by the loop that serves, so a loop that stands still is told apart from a
+/// healthy one. fs-rpc also has a heartbeat for Windows, but it is not switched on here yet (WIN-HOST); there the service serves
+/// without it.
+///
+/// Pattern: Active object + RAII (the heartbeat of fs-rpc) with a ticker as its companion; dropped together with the service.
+/// Deviation: fs-rpc says "after the socket is bound" and binds inside `run_until_signal_callers`, so "before the socket" is not
+/// possible from here; the first step of the `open` closure is the nearest place.
 #[cfg(unix)]
-fn keep_beat(planning: Planning, socket: &std::path::Path) -> io::Result<Planning> {
+fn start_beat(socket: &std::path::Path) -> io::Result<Beating> {
     let beat = std::rc::Rc::new(fs_rpc::Heartbeat::start(socket)?);
     let tick = beat.clone();
     let ticker = tokio::task::spawn_local(async move {
@@ -133,13 +141,14 @@ fn keep_beat(planning: Planning, socket: &std::path::Path) -> io::Result<Plannin
             tick.tick();
         }
     });
-    Ok(planning.keeping(Beating { beat, ticker }))
+    Ok(Beating { beat, ticker })
 }
 
+/// Without a heartbeat (not Unix): nothing is kept.
 #[cfg(not(unix))]
 #[allow(clippy::unnecessary_wraps)] // the same signature as on Unix
-fn keep_beat(planning: Planning, _: &std::path::Path) -> io::Result<Planning> {
-    Ok(planning)
+fn start_beat(_: &std::path::Path) -> io::Result<Beating> {
+    Ok(Beating)
 }
 
 #[cfg(unix)]
@@ -147,6 +156,9 @@ struct Beating {
     beat: std::rc::Rc<fs_rpc::Heartbeat>,
     ticker: tokio::task::JoinHandle<()>,
 }
+
+#[cfg(not(unix))]
+struct Beating;
 
 #[cfg(unix)]
 impl Drop for Beating {
