@@ -77,7 +77,7 @@ pub trait TaskItems: Send + Sync {
     ) -> Result<TaskEntry> {
         not_possible("task.edit")
     }
-    /// `task.assign`: make `email` an owner of the task.
+    /// `task.assign`: make `email` responsible for the task (role `chair`).
     async fn assign(&self, _id: ObjectId, _name: &str, _email: &str) -> Result<TaskEntry> {
         not_possible("task.assign")
     }
@@ -92,7 +92,7 @@ pub trait TaskItems: Send + Sync {
     ) -> Result<TaskEntry> {
         not_possible("relation.create")
     }
-    /// Assign the task to an actor (a person, a program, a service ...) by its AS2 actor IRI, as the owner. Assigning the
+    /// Assign the task to an actor (a person, a program, a service ...) by its AS2 actor IRI, as responsible (role `chair`). Assigning the
     /// same actor twice keeps one participant. Not on the wire yet (`assign` knows only people with an e-mail address).
     async fn assign_actor(
         &self,

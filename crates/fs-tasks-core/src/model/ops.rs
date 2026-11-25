@@ -55,19 +55,19 @@ impl Task {
         self.set_vendor(TASK_STATUS_KEY, json!(status));
     }
 
-    /// Assign the task to a person (role `owner`); returns the participant key. Assigning the
+    /// Assign the task to a person (role `chair`, "responsible"); returns the participant key. Assigning the
     /// same address twice keeps the one participant.
     pub fn assign(&mut self, name: &str, email: &str) -> String {
         if let Some(k) = self.participant_by_email(email) {
             let key = k.to_string();
             if let Some(p) = self.participants.get_mut(&key) {
-                p.roles.insert("owner".into(), true);
+                p.roles.insert("chair".into(), true);
             }
             return key;
         }
         let key = next_participant_key(&self.participants);
         self.participants
-            .insert(key.clone(), Participant::person(name, email, "owner"));
+            .insert(key.clone(), Participant::person(name, email, "chair"));
         key
     }
 
