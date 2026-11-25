@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="addon">
+  <id>net.freesynergy.modules.Planning</id>
+  <extends>net.freesynergy.Starter</extends>
+  <name>Planning</name>
+  <summary>FreeSynergy module planning: items and boards (tasks) as a service</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT OR Apache-2.0</project_license>
+  <url type="homepage">https://github.com/FreeSynergy-Net/fs-modules-planning</url>
+  <custom>
+    <value key="fs:provides">planning@0.0.4</value>
+    <value key="fs:needs">person</value>
+  </custom>
+  <releases>
+    <release version="0.0.4"/>
+  </releases>
+</component>
