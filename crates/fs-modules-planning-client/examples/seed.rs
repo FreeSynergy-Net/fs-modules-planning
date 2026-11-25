@@ -123,6 +123,9 @@ pub fn cards() -> Vec<Seed> {
 }
 
 /// Create the cards of [`cards`] on the board of the service and put each in its column.
+///
+/// # Panics
+/// When the service refuses a call: a seed that is half done is no seed.
 pub async fn seed(conn: &tasks::Client, p: &mut Planning) {
     let ids: Vec<String> = p
         .columns()
