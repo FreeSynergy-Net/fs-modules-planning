@@ -44,8 +44,8 @@ async fn due_is_an_instant_with_offset_and_the_column_shows_its_name() {
             assert_eq!(field(row("Zoned"), "due"), "2026-11-26T11:00:00Z");
             assert_eq!(field(row("Floating"), "due"), "2026-11-26T12:00:00Z");
             assert_eq!(field(row("Bare"), "due"), "", "no due, no value");
-            assert_eq!(field(row("Zoned"), "percent"), "40");
-            assert_eq!(field(row("Bare"), "percent"), "");
+            assert_eq!(field(row("Zoned"), "percentComplete"), "40");
+            assert_eq!(field(row("Bare"), "percentComplete"), "");
             // the id stays the target of `move`, the name is what the head shows
             assert_eq!(field(row("Zoned"), "column"), "todo");
             assert_eq!(field(row("Zoned"), "column-label"), "To do");

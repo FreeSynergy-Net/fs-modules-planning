@@ -81,7 +81,7 @@ impl FormSourceImpl {
             row.push(("column-limit", limit.to_string()));
         }
         if let Some(percent) = task.percent_complete {
-            row.push(("percent", percent.to_string()));
+            row.push(("percentComplete", percent.to_string()));
         }
         row.extend(crate::facts::channels(task));
         row.extend(crate::facts::of(task));

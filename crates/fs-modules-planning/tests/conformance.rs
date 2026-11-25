@@ -16,7 +16,7 @@ use fs_module::{
 };
 use tokio::task::LocalSet;
 
-const FORM: &str = "cards-in-columns@1.3.0";
+const FORM: &str = "cards-in-columns@1.4.0";
 
 struct Planning {
     client: form_source::Client,
@@ -153,7 +153,10 @@ impl FormSourceFixture for Planning {
         [
             ("description", ValueKind::Description),
             ("color", ValueKind::Color),
-            ("estimated", ValueKind::Estimated),
+            ("estimatedDuration", ValueKind::Estimated),
+            ("progress", ValueKind::State),
+            ("timeZone", ValueKind::TimeZone),
+            ("assignee", ValueKind::Assignee),
             ("column-limit", ValueKind::ColumnLimit),
             ("priority", ValueKind::Priority),
         ]

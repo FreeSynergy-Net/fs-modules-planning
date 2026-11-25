@@ -78,7 +78,7 @@ async fn a_task_is_created_between_neighbours_of_a_full_column_and_deleted() {
                 ]
             );
             // the answer names the new card: it is the record the page shows
-            let rows = common::page(&source, "cards-in-columns@1.3.0", "work")
+            let rows = common::page(&source, "cards-in-columns@1.4.0", "work")
                 .await
                 .unwrap();
             assert_eq!(rows[0].0, first.record);

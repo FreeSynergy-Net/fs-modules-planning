@@ -165,7 +165,7 @@ pub async fn titles(source: &form_source::Client) -> Vec<String> {
 }
 
 /// Seed the own channels of `cards-in-columns@1.3.0` on the board `work`: a limit of 3 on its column `todo`, and one task
-/// `full` with `priority` 1, `color` `#ff8800`, `estimated` `PT1H30M` and a `description`.
+/// `full` with `priority` 1, `color` `#ff8800`, `estimated` `PT1H30M`, a `description`, the zone `Europe/Berlin` and two people in charge.
 pub async fn seed_channels(socket: &std::path::Path) {
     use fs_interfaces::tasks_capnp::tasks;
     use fs_tasks_core::Task;
@@ -202,6 +202,17 @@ pub async fn seed_channels(socket: &std::path::Path) {
     full.description = Some("why".into());
     full.estimated_duration = Some("PT1H30M".into());
     full.set_vendor("color", serde_json::json!("#ff8800"));
+    full.time_zone = Some("Europe/Berlin".into());
+    full.assign_actor(
+        "freesynergy.net:person:ada",
+        fs_tasks_core::model::ActorType::Person,
+        "Ada",
+    );
+    full.assign_actor(
+        "freesynergy.net:person:bob",
+        fs_tasks_core::model::ActorType::Person,
+        "Bob",
+    );
     let items = tasks.client.items_request().send().pipeline.get_items();
     let mut add = items.create_request();
     add.get()

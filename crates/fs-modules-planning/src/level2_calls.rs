@@ -175,7 +175,7 @@ pub(crate) async fn watch(
     let p = params.get()?;
     let form = p.get_form()?.to_str()?;
     if !serves(form) {
-        let why = format!("this module draws {FORM_CARDS} (and 1.1, 1.0 for reading)");
+        let why = format!("this module draws {FORM_CARDS} (and 1.3, 1.2, 1.1, 1.0 for reading)");
         return Err(problem(crate::formsource::UNKNOWN_FORM, why, 404).into_error());
     }
     let scope = p.get_scope()?.to_string()?;

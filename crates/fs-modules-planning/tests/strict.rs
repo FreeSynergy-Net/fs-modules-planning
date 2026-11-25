@@ -17,10 +17,10 @@ fn the_form_names_at_most_four_facts_and_the_capabilities_are_the_contract_ids()
     // cards-in-columns@1.1 allows facts 0..4 (fs-interfaces schema/forms.txt)
     assert!(forms[0]["map"]["facts"].as_array().unwrap().len() <= 4);
     // the version the module keeps decides what a command writes (fs-forms-run `definition`): 1.2 and 1.3 have `writes` of move (after, before), `order` (read only), create, remove
-    assert_eq!(forms[0]["version"], "1.3");
-    // the host reads `x.y` from the file until it takes `x.y.z`; the service names the same form as `x.y.z`
+    assert_eq!(forms[0]["version"], "1.4.0");
+    // the file and the service name the same form as `x.y.z`
     assert_eq!(
-        format!("{}.0", forms[0]["version"].as_str().unwrap()),
+        forms[0]["version"].as_str().unwrap(),
         FORM_CARDS.rsplit('@').next().unwrap()
     );
     // the channel of the form names the key of the contract, not a name of the host; the place is written by the neighbours, never as a number
@@ -31,9 +31,15 @@ fn the_form_names_at_most_four_facts_and_the_capabilities_are_the_contract_ids()
     assert_eq!(forms[0]["map"]["after"], "after");
     assert_eq!(forms[0]["map"]["before"], "before");
     assert_eq!(forms[0]["map"]["lane"], "board");
-    // `progress` is a number channel: it takes the percent (a number), never the status word; the head shows the column name beside its id
-    assert_eq!(forms[0]["map"]["progress"], "percent");
-    assert_eq!(forms[0]["fields"]["percent"], "number");
+    // `progress` is a number channel: it takes the percent (a number, JSCalendar `percentComplete`); the status WORD is the channel `state` (field `progress`)
+    assert_eq!(forms[0]["map"]["progress"], "percentComplete");
+    assert_eq!(forms[0]["fields"]["percentComplete"], "number");
+    assert_eq!(forms[0]["map"]["state"], "progress");
+    assert_eq!(forms[0]["fields"]["progress"], "text");
+    assert_eq!(forms[0]["map"]["assignee"], "assignee");
+    assert_eq!(forms[0]["fields"]["assignee"], "reference");
+    assert_eq!(forms[0]["map"]["time-zone"], "timeZone");
+    assert_eq!(forms[0]["map"]["estimated"], "estimatedDuration");
     assert_eq!(forms[0]["map"]["column-label"], "column-label");
     assert_eq!(forms[0]["fields"]["due"], "date-time");
     // every command channel is a key of the command file, and every argument the gesture writes (`after`, `before`, `lane`, `column`, `title`)
