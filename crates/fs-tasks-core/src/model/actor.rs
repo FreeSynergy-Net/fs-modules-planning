@@ -153,7 +153,7 @@ impl Task {
             .collect()
     }
 
-    /// The actor IRIs the task is assigned to, in participant order.
+    /// The actor IRIs of ALL participants that have one (any role), in the order of the participant keys; "assigned to" is [`Task::assignees`].
     pub fn actors(&self) -> Vec<&str> {
         self.participants.values().filter_map(actor_of).collect()
     }

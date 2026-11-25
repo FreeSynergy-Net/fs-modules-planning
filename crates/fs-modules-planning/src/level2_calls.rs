@@ -8,7 +8,7 @@ use fs_objects::{ActivityId, Outcome};
 
 use crate::errors::rpc_error;
 use crate::formsource::FormSourceImpl;
-use crate::formsource::{FORM_CARDS, PAGE_MAX, read_offset, serves};
+use crate::formsource::{PAGE_MAX, read_offset, serves};
 use crate::level2::{
     GONE, NOT_REVERTIBLE, Seen, UNKNOWN_CHANGE, clash_problem, parse_expect, parse_step, read_uuid,
     seen, write_change, write_clash, write_done, write_problem,
@@ -175,7 +175,7 @@ pub(crate) async fn watch(
     let p = params.get()?;
     let form = p.get_form()?.to_str()?;
     if !serves(form) {
-        let why = format!("this module draws {FORM_CARDS} (and 1.3, 1.2, 1.1, 1.0 for reading)");
+        let why = crate::formsource::unknown_form_why();
         return Err(problem(crate::formsource::UNKNOWN_FORM, why, 404).into_error());
     }
     let scope = p.get_scope()?.to_string()?;

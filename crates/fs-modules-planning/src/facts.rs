@@ -9,7 +9,7 @@ use fs_tasks_core::model::actor_of;
 /// The own channels of `cards-in-columns@1.4.0` that are set on `task`: `priority` (RFC 8984 section 4.4.1, 1..9; 0 is "not set", other
 /// integers are reserved and not sent), `color` (section 4.2.11, as the member `color` the task carries; not typed in the model, so it is read as the
 /// standard member of the open map), `estimated` (section 5.2.3 `estimatedDuration`, ISO 8601 as stored), `state` (section 5.2.5 `progress`,
-/// the word of `effective_progress()`), `time-zone` (section 4.7.1 `timeZone`, only when set; `due` stays an instant with `Z`) and `assignee` (see
+/// the valid word of `effective_progress()`; a missing `progress` is derived after section 5.2.5), `time-zone` (section 4.7.1 `timeZone`, only when set; `due` stays an instant with `Z`) and `assignee` (see
 /// [`assignees`]). The values go out under the field names of the catalog (`estimatedDuration`, `progress`, `timeZone`, `assignee`).
 pub(crate) fn channels(task: &Task) -> Vec<(&'static str, String)> {
     let mut out = Vec::new();
@@ -26,7 +26,7 @@ pub(crate) fn channels(task: &Task) -> Vec<(&'static str, String)> {
     if let Some(span) = task.estimated_duration.as_deref().filter(|d| !d.is_empty()) {
         out.push(("estimatedDuration", span.to_owned()));
     }
-    out.push(("progress", state_word(task)));
+    out.extend(state_word(task).map(|word| ("progress", word)));
     if let Some(zone) = task.time_zone.as_deref().filter(|z| !z.is_empty()) {
         out.push(("timeZone", zone.to_owned()));
     }
@@ -34,9 +34,9 @@ pub(crate) fn channels(task: &Task) -> Vec<(&'static str, String)> {
     out
 }
 
-/// The status word of the task (RFC 8984 section 5.2.5): one of the five words of the RFC, or a vendor word `<domain>:<name>`; what is neither is not sent
-/// as a state but read as the default `needs-action`.
-fn state_word(task: &Task) -> String {
+/// The status word of the task (RFC 8984 section 5.2.5, `effective_progress()`): one of the five words of the RFC, or a vendor word
+/// `<domain>:<name>`. A stored word that is neither is NOT sent (no value; nothing is guessed or mapped to another status).
+fn state_word(task: &Task) -> Option<String> {
     const WORDS: [&str; 5] = [
         "needs-action",
         "in-process",
@@ -48,11 +48,7 @@ fn state_word(task: &Task) -> String {
     let vendor = word
         .split_once(':')
         .is_some_and(|(domain, name)| !domain.is_empty() && !name.is_empty());
-    if WORDS.contains(&word) || vendor {
-        word.to_owned()
-    } else {
-        "needs-action".to_owned()
-    }
+    (WORDS.contains(&word) || vendor).then(|| word.to_owned())
 }
 
 /// The IRI of each person in charge (`Task::assignees()`, the one place that says "responsible"), in participant order: the actor IRI
@@ -65,8 +61,11 @@ fn assignees(task: &Task) -> Vec<String> {
                 .filter(|a| !a.is_empty())
                 .map(str::to_owned)
                 .or_else(|| {
+                    // `email` may already carry `mailto:` (as `calendar_address` does): never doubled
                     p.email
                         .as_deref()
+                        .or(p.calendar_address.as_deref())
+                        .map(|e| e.trim().trim_start_matches("mailto:"))
                         .filter(|e| !e.is_empty())
                         .map(|e| format!("mailto:{e}"))
                 })
@@ -233,8 +232,18 @@ mod channel_tests {
         task.participants.insert("p8".into(), mail);
         task.participants.insert("p9".into(), nothing);
         task.participants.insert("p10".into(), watcher);
+        let mut prefixed = fs_tasks_core::Participant {
+            email: Some("mailto:dee@example.org".into()),
+            ..Default::default()
+        };
+        prefixed.roles.insert("chair".into(), true);
+        task.participants.insert("p11".into(), prefixed);
         let got = named(&task, "assignee");
-        assert_eq!(got.len(), 3);
+        assert_eq!(got.len(), 4);
         assert!(got.contains(&"mailto:cy@example.org".to_owned()));
+        assert!(
+            got.contains(&"mailto:dee@example.org".to_owned()),
+            "no doubled prefix"
+        );
     }
 }

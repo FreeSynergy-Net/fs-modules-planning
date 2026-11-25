@@ -78,7 +78,12 @@ impl TaskRepo {
                 put(DEPENDS_ON, other);
             }
         }
-        for actor in task.actors() {
+        // only the people in charge (`assignees()`, role chair), not every participant that has an actor IRI
+        for actor in task
+            .assignees()
+            .into_iter()
+            .filter_map(crate::model::actor_of)
+        {
             put("assignee_actor", actor.to_string());
         }
         for p in task.participants.values() {

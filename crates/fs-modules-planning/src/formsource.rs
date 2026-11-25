@@ -44,6 +44,11 @@ pub const PAGE_MAX: u32 = 500;
 
 pub(crate) const UNKNOWN_FORM: &str = "form-source-unknown-form";
 
+/// The text of the problem for a form this module does not serve (one place for `page` and `watch`).
+pub(crate) fn unknown_form_why() -> String {
+    format!("this module draws {FORM_CARDS} (and 1.3, 1.2, 1.1, 1.0 for reading)")
+}
+
 pub(crate) struct FormSourceImpl {
     pub(crate) repo: Arc<TaskRepo>,
     /// Where the changes of THIS connection come from (`introduce`); one per connection, made by `bootstrap`.
@@ -79,9 +84,7 @@ impl form_source::Server for FormSourceImpl {
         let p = params.get()?;
         let form = p.get_form()?.to_str()?;
         if !serves(form) {
-            let why =
-                format!("this module draws {FORM_CARDS} (and 1.3, 1.2, 1.1, 1.0 for reading)");
-            return Err(problem(UNKNOWN_FORM, why, 404).into_error());
+            return Err(problem(UNKNOWN_FORM, unknown_form_why(), 404).into_error());
         }
         let scope = p.get_scope()?.to_string()?;
         let skip = read_offset(p.get_cursor()?)?;
