@@ -762,9 +762,10 @@ dependencies = [
 [[package]]
 name = "fs-person"
 version = "0.0.3"
-source = "git+https://github.com/FreeSynergy-Net/fs-modules-person?rev=37683fdd032c37d0c79660bfb74caa10f0197ea9#37683fdd032c37d0c79660bfb74caa10f0197ea9"
+source = "git+https://github.com/FreeSynergy-Net/fs-modules-person?rev=bfebf590689d21d64851661b39e52fee286a617d#bfebf590689d21d64851661b39e52fee286a617d"
 dependencies = [
  "async-trait",
+ "capnp",
  "fs-interfaces",
  "fs-lib-jscontact",
  "fs-objects",
@@ -786,7 +787,7 @@ dependencies = [
 [[package]]
 name = "fs-person-service"
 version = "0.0.3"
-source = "git+https://github.com/FreeSynergy-Net/fs-modules-person?rev=37683fdd032c37d0c79660bfb74caa10f0197ea9#37683fdd032c37d0c79660bfb74caa10f0197ea9"
+source = "git+https://github.com/FreeSynergy-Net/fs-modules-person?rev=bfebf590689d21d64851661b39e52fee286a617d#bfebf590689d21d64851661b39e52fee286a617d"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -810,7 +811,7 @@ dependencies = [
 [[package]]
 name = "fs-rpc"
 version = "0.1.4"
-source = "git+https://github.com/FreeSynergy-Net/fs-rpc?rev=dba7125f4c8baa51d55786bbbff150b9052c35a1#dba7125f4c8baa51d55786bbbff150b9052c35a1"
+source = "git+https://github.com/FreeSynergy-Net/fs-rpc?rev=7a656f456f3f05805f1fa2c128b21837ebd21eb9#7a656f456f3f05805f1fa2c128b21837ebd21eb9"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -860,7 +861,7 @@ dependencies = [
 [[package]]
 name = "fs-trusted-path"
 version = "0.1.4"
-source = "git+https://github.com/FreeSynergy-Net/fs-rpc?rev=dba7125f4c8baa51d55786bbbff150b9052c35a1#dba7125f4c8baa51d55786bbbff150b9052c35a1"
+source = "git+https://github.com/FreeSynergy-Net/fs-rpc?rev=7a656f456f3f05805f1fa2c128b21837ebd21eb9#7a656f456f3f05805f1fa2c128b21837ebd21eb9"
 dependencies = [
  "windows-sys 0.61.2",
 ]
