@@ -1,5 +1,5 @@
 # The gate on the Windows runner of fs-release (windows-2022), as a caller of _windows-check.yml.
-# Pin to a fs-release TAG that contains _windows-check.yml (v0.0.11 = first tag after the Opus look; never @main); `scripts/pin-refs.sh --dir <repo> <tag>` raises it. No secrets, so no `secrets: inherit`.
+# Pin to a fs-release commit SHA (full 40 characters) that contains _windows-check.yml (never @main, never a moving tag); `scripts/pin-refs.sh --dir <repo> <sha>` raises it. No secrets, so no `secrets: inherit`.
 name: windows
 on:
   push:
