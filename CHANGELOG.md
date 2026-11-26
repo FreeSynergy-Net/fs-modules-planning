@@ -2,6 +2,11 @@
 
 Version = tag.
 
+## Unreleased
+
+- Pin wave 12 (only pins and lock, no code, no version change; tag not yet set): `fs-rpc` `rev dba7125f` (was `c0cbf7ad`) and `fs-modules-person` `rev 37683fdd` (was `1d90b1d5`; both heads carry the one fs-components state `f2e90244` of the cascade). This module has no fs-components in its own graph (the lock holds none). `cargo tree -d` shows no fs-* twice. Written with the help of Claude (Anthropic).
+- Auf Deutsch: Pin-Welle 12 (nur Pins und Lock, kein Code, keine Versionsänderung; Tag noch nicht gesetzt): `fs-rpc` `rev dba7125f` (war `c0cbf7ad`) und `fs-modules-person` `rev 37683fdd` (war `1d90b1d5`; beide Köpfe tragen den einen fs-components-Stand `f2e90244` der Kaskade). Dieses Modul hat fs-components nicht im eigenen Graphen (das Lock enthält keins). `cargo tree -d` zeigt kein fs-* doppelt. Geschrieben mit Hilfe von Claude (Anthropic).
+
 ## 0.0.8
 
 - Pin: `fs-modules-person` `rev 1d90b1d5` (version 0.0.3, branch `unreviewed/anchor-at-start`; was `59d373f4`, 0.0.2). The person service now births its one anchor itself at its first start, so the owner that planning asks for exists. Version 0.0.8 in workspace, path dependencies, `metainfo.xml`, `fs:needs person@~0.0.3`. No planning code changed; the test `person_owner` follows the new person service (the real service makes "me" at its start, so the old "does not start without me" case with the real binary is gone; `owner-no-me` stays covered by `tests/owner.rs`). Honest: `owner-no-me` is gone only once the host installs and starts person 0.0.3 (or newer) and this planning version; with an older person service planning still ends with `owner-no-me`. Written with the help of Claude (Anthropic).
