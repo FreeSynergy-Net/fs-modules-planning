@@ -2,6 +2,11 @@
 
 Version = tag.
 
+## 0.0.8
+
+- Pin: `fs-modules-person` `rev 1d90b1d5` (version 0.0.3, branch `unreviewed/anchor-at-start`; was `59d373f4`, 0.0.2). The person service now births its one anchor itself at its first start, so the owner that planning asks for exists. Version 0.0.8 in workspace, path dependencies, `metainfo.xml`, `fs:needs person@~0.0.3`. No planning code changed; the test `person_owner` follows the new person service (the real service makes "me" at its start, so the old "does not start without me" case with the real binary is gone; `owner-no-me` stays covered by `tests/owner.rs`). Honest: `owner-no-me` is gone only once the host installs and starts person 0.0.3 (or newer) and this planning version; with an older person service planning still ends with `owner-no-me`. Written with the help of Claude (Anthropic).
+- Auf Deutsch: Pin: `fs-modules-person` `rev 1d90b1d5` (Version 0.0.3, Zweig `unreviewed/anchor-at-start`; war `59d373f4`, 0.0.2). Der person-Dienst legt seinen einen Anker beim ersten Start selbst an, der Besitzer, den planning abfragt, ist also da. Version 0.0.8 in Workspace, Pfad-Abhängigkeiten, `metainfo.xml`, `fs:needs person@~0.0.3`. Kein planning-Code geändert; der Test `person_owner` folgt dem neuen person-Dienst (der echte Dienst legt „me“ beim Start an, der alte Fall „startet nicht ohne me“ mit dem echten Programm entfällt; `owner-no-me` bleibt durch `tests/owner.rs` gedeckt). Ehrlich: `owner-no-me` verschwindet erst, wenn der Host person 0.0.3 (oder neuer) und diese planning-Version installiert und startet; mit einem älteren person-Dienst endet planning weiter mit `owner-no-me`. Geschrieben mit Hilfe von Claude (Anthropic).
+
 ## 0.0.7
 
 - Pin wave 9 (pins, lock, version 0.0.7 in workspace, path dependencies and `metainfo.xml`, `fs:needs person@~0.0.2`, and one test): `fs-interfaces` `rev 92dbb53e` (was `2354f440`; `me.create` on the capability list), `fs-rpc` `rev c0cbf7ad` (was `6e80162a`), `fs-person-service` (fs-modules-person 0.0.2) `rev 59d373f4` (was `f9325bba`). New test `tests/commands_known.rs` in the client crate: every command key of `catalog/commands.json` must be well-formed and on the list (`fs_interfaces::capabilities::is_known`). `cargo tree -d` shows no fs-* twice, no `[patch]`. Written with the help of Claude (Anthropic).

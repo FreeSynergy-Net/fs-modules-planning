@@ -703,7 +703,7 @@ dependencies = [
 
 [[package]]
 name = "fs-modules-planning"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -723,7 +723,7 @@ dependencies = [
 
 [[package]]
 name = "fs-modules-planning-client"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -761,8 +761,8 @@ dependencies = [
 
 [[package]]
 name = "fs-person"
-version = "0.0.2"
-source = "git+https://github.com/FreeSynergy-Net/fs-modules-person?rev=59d373f4a78661ef85cddacd6bf061208505cd86#59d373f4a78661ef85cddacd6bf061208505cd86"
+version = "0.0.3"
+source = "git+https://github.com/FreeSynergy-Net/fs-modules-person?rev=1d90b1d53fdf0374f0be85fc3c868ca2e30af89a#1d90b1d53fdf0374f0be85fc3c868ca2e30af89a"
 dependencies = [
  "async-trait",
  "fs-interfaces",
@@ -785,8 +785,8 @@ dependencies = [
 
 [[package]]
 name = "fs-person-service"
-version = "0.0.2"
-source = "git+https://github.com/FreeSynergy-Net/fs-modules-person?rev=59d373f4a78661ef85cddacd6bf061208505cd86#59d373f4a78661ef85cddacd6bf061208505cd86"
+version = "0.0.3"
+source = "git+https://github.com/FreeSynergy-Net/fs-modules-person?rev=1d90b1d53fdf0374f0be85fc3c868ca2e30af89a#1d90b1d53fdf0374f0be85fc3c868ca2e30af89a"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -801,7 +801,7 @@ dependencies = [
 
 [[package]]
 name = "fs-rank"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "fracindex",
  "thiserror",
@@ -829,7 +829,7 @@ dependencies = [
 
 [[package]]
 name = "fs-tasks-core"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "async-trait",
  "capnp",
@@ -848,7 +848,7 @@ dependencies = [
 
 [[package]]
 name = "fs-tasks-sample"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "chrono",
  "fs-jscalendar",

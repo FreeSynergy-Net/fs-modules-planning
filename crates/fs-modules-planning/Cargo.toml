@@ -30,15 +30,15 @@ fake-owner = ["fs-interfaces/fake"]
 
 [dependencies]
 # The core is used without its `contract` feature: the service needs none of its filter conversion.
-fs-tasks-core = { path = "../fs-tasks-core", version = "0.0.7" }
+fs-tasks-core = { path = "../fs-tasks-core", version = "0.0.8" }
 # The one place of the module name (socket, catalog, data folder): the client says it, the service uses it.
-fs-modules-planning-client = { path = "../fs-modules-planning-client", version = "0.0.7" }
+fs-modules-planning-client = { path = "../fs-modules-planning-client", version = "0.0.8" }
 # One source per library: the same tags as the core and fs-rpc (v0.1.3 has fs-interfaces v0.1.0).
 fs-rpc = { git = "https://github.com/FreeSynergy-Net/fs-rpc", rev = "c0cbf7adfbe315c4452bc6a6e916a317fd24f454", version = "0.1.4" }
 fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "92dbb53e9c9ea2c48e85a27712f0456f2a7b8161", version = "0.3.0" }
 fs-objects = { git = "https://github.com/FreeSynergy-Net/fs-objects", rev = "e38093f1ec61b7c9faaa6f6046f65addb11dcf46", version = "0.0.11" }
 # The owner is the person "me" of the module person (ADR 0104 E9), asked from its service and never made up. One source per library: it pins the same fs-rpc, fs-interfaces, fs-objects and fs-types.
-fs-person-service = { git = "https://github.com/FreeSynergy-Net/fs-modules-person", rev = "59d373f4a78661ef85cddacd6bf061208505cd86", version = "0.0.2", features = ["client"] }
+fs-person-service = { git = "https://github.com/FreeSynergy-Net/fs-modules-person", rev = "1d90b1d53fdf0374f0be85fc3c868ca2e30af89a", version = "0.0.3", features = ["client"] }
 capnp = "0.27"
 capnp-rpc = "0.27"
 serde_json = "1"

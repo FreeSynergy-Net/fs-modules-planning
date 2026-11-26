@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Output, Stdio};
+use std::process::{Command, Stdio};
 use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 
@@ -100,18 +100,4 @@ pub fn local<T>(work: impl std::future::Future<Output = T>) -> T {
         .build()
         .unwrap();
     tokio::task::LocalSet::new().block_on(&runtime, work)
-}
-
-/// Wait for the end of the program; a program still running after `limit` is killed and the test fails.
-pub fn finish(mut child: Child, limit: Duration) -> Output {
-    let until = Instant::now() + limit;
-    while child.try_wait().unwrap().is_none() {
-        if Instant::now() > until {
-            let _ = child.kill();
-            let _ = child.wait();
-            panic!("the program kept running: it must not start");
-        }
-        std::thread::sleep(Duration::from_millis(50));
-    }
-    child.wait_with_output().unwrap()
 }

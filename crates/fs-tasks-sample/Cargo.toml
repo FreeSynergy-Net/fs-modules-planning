@@ -10,7 +10,7 @@ rust-version.workspace = true
 publish = false
 
 [dependencies]
-fs-tasks-core = { path = "../fs-tasks-core", version = "0.0.7" }
+fs-tasks-core = { path = "../fs-tasks-core", version = "0.0.8" }
 # The people: the ONE sample of the person directory (names, references, addresses), the same fs-interfaces source and fs-types as the module.
 fs-person-directory = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "92dbb53e9c9ea2c48e85a27712f0456f2a7b8161", version = "0.3.0" }
 fs-types = { git = "https://github.com/FreeSynergy-Net/fs-types", rev = "722d3ce0156711d40cb278f2e835e865d9448290", version = "0.0.7" }
