@@ -11,10 +11,12 @@
 
 mod all;
 mod build;
+mod coverage;
 mod people;
 mod plan;
 mod three;
 
 pub use all::{Sample, sample, uid_of};
+pub use coverage::coverage;
 pub use plan::{mini_plan, plan_uid};
 pub use three::{board_example, three_tasks};

@@ -8,36 +8,11 @@ use fs_person_directory::{sample_address, sample_name, sample_ref};
 use fs_tasks_core::model::{BoardTask, Task};
 use fs_tasks_core::plan::{Edge, EdgeKind, edges_of};
 use fs_tasks_core::validate;
-use fs_tasks_sample::{mini_plan, plan_uid, sample, three_tasks, uid_of};
+use fs_tasks_sample::{coverage, mini_plan, plan_uid, sample, three_tasks, uid_of};
 use fs_types::BasicValue;
 
 fn local(text: &str) -> NaiveDateTime {
     NaiveDateTime::parse_from_str(text, "%Y-%m-%dT%H:%M:%S").expect("a local time")
-}
-
-/// All four kinds, one lag, one milestone (`PT0S`, start = due): the first thing missing is the error.
-fn coverage(plan: &[Task]) -> Result<(), String> {
-    let edges = edges_of(plan);
-    for kind in [
-        EdgeKind::FinishToStart,
-        EdgeKind::StartToStart,
-        EdgeKind::FinishToFinish,
-        EdgeKind::StartToFinish,
-    ] {
-        if !edges.iter().any(|e| e.kind == kind) {
-            return Err(format!("no dependency of kind {kind:?}"));
-        }
-    }
-    if !edges.iter().any(|e| e.gap > Duration::zero()) {
-        return Err("no gap (lag)".into());
-    }
-    let milestone = plan.iter().any(|t| {
-        t.estimated_duration.as_deref() == Some("PT0S") && t.start == t.due && t.start.is_some()
-    });
-    if !milestone {
-        return Err("no milestone (PT0S, start = due)".into());
-    }
-    Ok(())
 }
 
 #[test]
@@ -156,35 +131,44 @@ fn coverage_fails_when_a_kind_the_gap_or_the_milestone_is_missing() {
             .unwrap_err()
             .contains("milestone")
     );
-    // Strip the relations of one holder at a time: each of these removes a kind or the gap.
-    let strip = |slug: &str| -> Vec<Task> {
+    // Each of the four kinds alone: the error names exactly the kind that was taken out (and the milestone stays).
+    let drop_ties = |ties: &[(&str, &str)]| -> Vec<Task> {
         let mut p = plan.clone();
-        p.iter_mut()
-            .filter(|t| t.uid == plan_uid(slug))
-            .for_each(|t| t.related_to.clear());
+        for (holder, target) in ties {
+            p.iter_mut()
+                .filter(|t| t.uid == plan_uid(holder))
+                .for_each(|t| {
+                    t.related_to.remove(&plan_uid(target));
+                });
+        }
         p
     };
-    assert!(
-        coverage(&strip("texte"))
-            .unwrap_err()
-            .contains("FinishToFinish")
+    // Only SF missing: aufbau to altseite.
+    let only_sf = drop_ties(&[("aufbau", "altseite")]);
+    assert!(only_sf.iter().any(|t| t.uid == plan_uid("freigabe")));
+    assert_eq!(
+        coverage(&only_sf).unwrap_err(),
+        "no dependency of kind StartToFinish"
     );
-    assert!(
-        coverage(&strip("konzept")).is_ok(),
-        "FS is still there (design to aufbau, design to freigabe)"
+    // Only FS missing: konzept to design, design to aufbau, aufbau to freigabe.
+    let only_fs = drop_ties(&[
+        ("konzept", "design"),
+        ("design", "aufbau"),
+        ("aufbau", "freigabe"),
+    ]);
+    assert_eq!(
+        coverage(&only_fs).unwrap_err(),
+        "no dependency of kind FinishToStart"
     );
-    let mut without_finish_tie = strip("aufbau");
-    without_finish_tie.retain(|t| t.uid != plan_uid("freigabe"));
-    assert!(coverage(&without_finish_tie).is_err());
-    let mut without_start_tie = plan.clone();
-    without_start_tie
-        .iter_mut()
-        .filter(|t| t.uid == plan_uid("design"))
-        .for_each(|t| t.related_to.clear());
-    assert!(
-        coverage(&without_start_tie)
-            .unwrap_err()
-            .contains("StartToStart")
+    // Only FF missing: texte to aufbau.
+    assert_eq!(
+        coverage(&drop_ties(&[("texte", "aufbau")])).unwrap_err(),
+        "no dependency of kind FinishToFinish"
+    );
+    // Only SS missing: design to texte.
+    assert_eq!(
+        coverage(&drop_ties(&[("design", "texte")])).unwrap_err(),
+        "no dependency of kind StartToStart"
     );
     // No gap: all relations without a lag.
     let mut no_gap = plan;
