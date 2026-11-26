@@ -9,9 +9,9 @@
   <url type="homepage">https://github.com/FreeSynergy-Net/fs-modules-planning</url>
   <custom>
     <value key="fs:provides">planning@0.0.3</value>
-    <value key="fs:needs">person@~0.0.1</value>
+    <value key="fs:needs">person@~0.0.2</value>
   </custom>
   <releases>
-    <release version="0.0.6"/>
+    <release version="0.0.7"/>
   </releases>
 </component>
