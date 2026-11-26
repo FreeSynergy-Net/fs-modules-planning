@@ -13,7 +13,7 @@ contract = ["dep:capnp"]
 [dependencies]
 fs-objects = { git = "https://github.com/FreeSynergy-Net/fs-objects", rev = "e38093f1ec61b7c9faaa6f6046f65addb11dcf46", version = "0.0.11" }
 # The hand order of the cards of a board: a rank key per card (fractional index), never a position number.
-fs-rank = { path = "../fs-rank", version = "0.0.5" }
+fs-rank = { path = "../fs-rank", version = "0.0.6" }
 # Shared JSCalendar types (time, rule, participants, upgrade, validation, iCalendar); Task itself is ours (ADR 0050).
 fs-jscalendar = { git = "https://github.com/FreeSynergy-Net/fs-jscalendar", rev = "0a3add97339c92be0ab8b524a294ca44ee8dca25", version = "0.0.7" }
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }

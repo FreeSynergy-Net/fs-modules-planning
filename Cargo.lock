@@ -610,7 +610,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -679,6 +679,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fs-lib-jscontact"
+version = "0.0.1"
+source = "git+https://github.com/FreeSynergy-Net/fs-lib-jscontact?rev=4d47badc3273b9ba8190cc5034e4477200710389#4d47badc3273b9ba8190cc5034e4477200710389"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "fs-module"
 version = "0.3.0"
 source = "git+https://github.com/FreeSynergy-Net/fs-interfaces?rev=71809eaa1e974841762315c7b3187276469ec0bb#71809eaa1e974841762315c7b3187276469ec0bb"
@@ -693,7 +703,7 @@ dependencies = [
 
 [[package]]
 name = "fs-modules-planning"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -713,7 +723,7 @@ dependencies = [
 
 [[package]]
 name = "fs-modules-planning-client"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -752,11 +762,13 @@ dependencies = [
 [[package]]
 name = "fs-person"
 version = "0.0.1"
-source = "git+https://github.com/FreeSynergy-Net/fs-modules-person?rev=904282c861ad815ba8de736f7e057827f2b81113#904282c861ad815ba8de736f7e057827f2b81113"
+source = "git+https://github.com/FreeSynergy-Net/fs-modules-person?rev=4143b272e7fdffdcab9cc5fd389cd330413d2b31#4143b272e7fdffdcab9cc5fd389cd330413d2b31"
 dependencies = [
  "async-trait",
  "fs-interfaces",
+ "fs-lib-jscontact",
  "fs-objects",
+ "fs-person-directory",
  "fs-types",
  "serde_json",
  "tokio",
@@ -774,7 +786,7 @@ dependencies = [
 [[package]]
 name = "fs-person-service"
 version = "0.0.1"
-source = "git+https://github.com/FreeSynergy-Net/fs-modules-person?rev=904282c861ad815ba8de736f7e057827f2b81113#904282c861ad815ba8de736f7e057827f2b81113"
+source = "git+https://github.com/FreeSynergy-Net/fs-modules-person?rev=4143b272e7fdffdcab9cc5fd389cd330413d2b31#4143b272e7fdffdcab9cc5fd389cd330413d2b31"
 dependencies = [
  "capnp",
  "capnp-rpc",
@@ -789,7 +801,7 @@ dependencies = [
 
 [[package]]
 name = "fs-rank"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "fracindex",
  "thiserror",
@@ -817,7 +829,7 @@ dependencies = [
 
 [[package]]
 name = "fs-tasks-core"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "async-trait",
  "capnp",
@@ -836,7 +848,7 @@ dependencies = [
 
 [[package]]
 name = "fs-tasks-sample"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "chrono",
  "fs-jscalendar",
@@ -2117,7 +2129,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2420,7 +2432,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix 1.1.6",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
