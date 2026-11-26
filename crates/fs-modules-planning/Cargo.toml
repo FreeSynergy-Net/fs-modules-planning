@@ -38,7 +38,7 @@ fs-rpc = { git = "https://github.com/FreeSynergy-Net/fs-rpc", rev = "6e80162ace0
 fs-interfaces = { git = "https://github.com/FreeSynergy-Net/fs-interfaces", rev = "2354f440985bf4c82d0a725928f8576032a595c6", version = "0.3.0" }
 fs-objects = { git = "https://github.com/FreeSynergy-Net/fs-objects", rev = "e38093f1ec61b7c9faaa6f6046f65addb11dcf46", version = "0.0.11" }
 # The owner is the person "me" of the module person (ADR 0104 E9), asked from its service and never made up. One source per library: it pins the same fs-rpc, fs-interfaces, fs-objects and fs-types.
-fs-person-service = { git = "https://github.com/FreeSynergy-Net/fs-modules-person", rev = "f529c2827f940ba17c6c7f54aab99ef5a7e88729", version = "0.0.1", features = ["client"] }
+fs-person-service = { git = "https://github.com/FreeSynergy-Net/fs-modules-person", rev = "f9325bba150a7c0c5eea3f25c80b83bb045cf9f4", version = "0.0.1", features = ["client"] }
 capnp = "0.27"
 capnp-rpc = "0.27"
 serde_json = "1"

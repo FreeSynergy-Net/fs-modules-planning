@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   windows:
-    uses: FreeSynergy-Net/fs-release/.github/workflows/_windows-check.yml@05a4a6a4e927931410d7ff262ac8f5af084f6766
+    uses: FreeSynergy-Net/fs-release/.github/workflows/_windows-check.yml@baae80b411c0bbabfd04b83ccdee9368f5b457fd
     with:
       cache: ${{ github.event_name != 'workflow_dispatch' || inputs.cache }} # push: cache on; by hand: the input above
     #   (more, optional)

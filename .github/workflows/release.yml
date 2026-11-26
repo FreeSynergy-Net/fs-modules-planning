@@ -9,7 +9,7 @@ permissions:
   packages: write
 jobs:
   release:
-    uses: FreeSynergy-Net/fs-release/.github/workflows/release.yml@05a4a6a4e927931410d7ff262ac8f5af084f6766
+    uses: FreeSynergy-Net/fs-release/.github/workflows/release.yml@baae80b411c0bbabfd04b83ccdee9368f5b457fd
     with:
       kind: module
       # `name` is the HOST module name (RPM = fs-module-planning), not the repo name; `binaries` is exactly the one service.
