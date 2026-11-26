@@ -4,6 +4,9 @@ Version = tag.
 
 ## Unreleased
 
+- Pin wave 13 (only pins and lock, no code, no version change): `fs-rpc` `rev 7a656f45` (was `dba7125f`) and `fs-person-service` (fs-modules-person) `rev bfebf590` (was `37683fdd`). This module has no fs-components in its own graph; the pins keep the whole cascade on one head. `cargo tree -d` shows no fs-* twice. Written with the help of Claude (Anthropic).
+- Auf Deutsch: Pin-Welle 13 (nur Pins und Lock, kein Code, keine Versionsänderung): `fs-rpc` `rev 7a656f45` (war `dba7125f`) und `fs-person-service` (fs-modules-person) `rev bfebf590` (war `37683fdd`). Dieses Modul hat fs-components nicht im eigenen Graphen; die Pins halten die ganze Kaskade auf einem Kopf. `cargo tree -d` zeigt kein fs-* doppelt. Geschrieben mit Hilfe von Claude (Anthropic).
+
 - Pin wave 12 (only pins and lock, no code, no version change; tag not yet set): `fs-rpc` `rev dba7125f` (was `c0cbf7ad`) and `fs-modules-person` `rev 37683fdd` (was `1d90b1d5`; both heads carry the one fs-components state `f2e90244` of the cascade). This module has no fs-components in its own graph (the lock holds none). `cargo tree -d` shows no fs-* twice. Written with the help of Claude (Anthropic).
 - Auf Deutsch: Pin-Welle 12 (nur Pins und Lock, kein Code, keine Versionsänderung; Tag noch nicht gesetzt): `fs-rpc` `rev dba7125f` (war `c0cbf7ad`) und `fs-modules-person` `rev 37683fdd` (war `1d90b1d5`; beide Köpfe tragen den einen fs-components-Stand `f2e90244` der Kaskade). Dieses Modul hat fs-components nicht im eigenen Graphen (das Lock enthält keins). `cargo tree -d` zeigt kein fs-* doppelt. Geschrieben mit Hilfe von Claude (Anthropic).
 
