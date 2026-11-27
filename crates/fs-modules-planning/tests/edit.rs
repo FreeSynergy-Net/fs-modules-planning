@@ -181,7 +181,11 @@ async fn the_first_task_of_an_empty_database_can_be_made_and_edited() {
                 .unwrap();
             board_with(&socket, &source.client, &[]).await;
             let source = source.client;
-            assert!(repo.list().await.unwrap().is_empty());
+            assert_eq!(
+                repo.list().await.unwrap().len(),
+                0,
+                "the database starts empty"
+            );
             let made = invoke(
                 &source,
                 "task.create",
