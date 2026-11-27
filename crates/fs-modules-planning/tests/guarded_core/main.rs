@@ -9,6 +9,7 @@
 #[path = "../common/mod.rs"]
 mod common;
 mod core_calls;
+mod edit_expect;
 mod fixture;
 mod read_right;
 mod scope;

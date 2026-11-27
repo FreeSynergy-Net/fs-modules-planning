@@ -25,8 +25,8 @@ pub(crate) const BAD_ARGS: &str = "form-source-bad-arguments";
 const UNKNOWN_RECORD: &str = "form-source-unknown-record";
 const REJECTED: &str = "form-source-rejected";
 const CONFLICT: &str = "form-source-conflict";
-const INTERNAL: &str = "form-source-internal";
-const UNSUPPORTED: &str = "form-source-unsupported";
+pub(crate) const INTERNAL: &str = "form-source-internal";
+pub(crate) const UNSUPPORTED: &str = "form-source-unsupported";
 
 pub(crate) const UID_MAX: usize = 255;
 
@@ -36,7 +36,6 @@ pub(crate) const SET_COMMANDS: [&str; 1] = ["task.create"];
 
 const MOVE_ARGS: [&str; 4] = ["board", "column", "after", "before"];
 const CREATE_ARGS: [&str; 5] = ["board", "column", "title", "after", "before"];
-const EDIT_ARGS: [&str; 4] = ["title", "description", "due", "priority"];
 
 /// What a command made or changed: the record (empty for a delete), a short code for people, and the head of the unit of change it wrote.
 pub(crate) struct Done {
@@ -142,7 +141,7 @@ pub(crate) fn board_named<'a>(
 }
 
 /// The task with this uid; a uid the core does not know is told, never created.
-async fn task_of(repo: &TaskRepo, uid: &str) -> Result<TaskEntry, Failure> {
+pub(crate) async fn task_of(repo: &TaskRepo, uid: &str) -> Result<TaskEntry, Failure> {
     check_uid(uid)?;
     repo.get_by_uid(uid)
         .await
@@ -257,63 +256,6 @@ pub(crate) async fn delete_task(
         .map_err(|e| boxed(INTERNAL, e.to_string(), 500))?
         .map_err(to_problem)?;
     Ran::of(outcome, String::new(), "task-deleted")
-}
-
-/// `task.edit`: change the fields of the task `uid` that are given (`title`, `description`, `due`, `priority`), the others stay. An
-/// empty `description`, `due` or `priority` removes it; a `title` cannot be empty. `due` and `priority` are judged by the core as for any
-/// task (a local date-time, a whole number 0 to 9), a wrong value is `rejected` and nothing is written. The card stays where it is.
-/// No compare-and-set on the `rev` yet: an `expect` is refused (never silently dropped).
-pub(crate) async fn edit_task(
-    repo: &TaskRepo,
-    uid: &str,
-    args: &Pairs,
-    expect: Option<u64>,
-) -> Result<Ran, Failure> {
-    let mut got = text_args(args, &EDIT_ARGS)?;
-    check_uid(uid)?;
-    if got.is_empty() {
-        let why = format!("no field to change (allowed: {})", EDIT_ARGS.join(", "));
-        return Err(boxed(BAD_ARGS, why, 400));
-    }
-    if expect.is_some() {
-        let why = "task.edit has no compare-and-set on the rev yet: `expect` is not taken";
-        return Err(boxed(UNSUPPORTED, why, 501));
-    }
-    let entry = task_of(repo, uid).await?;
-    let mut task = entry.task.clone();
-    // an empty text removes an optional field; the title is never removed
-    let some = |text: String| Some(text).filter(|t| !t.trim().is_empty());
-    if let Some(title) = got.remove("title") {
-        match some(title) {
-            Some(t) => task.title = Some(t.trim().to_owned()),
-            None => return Err(boxed(BAD_ARGS, "`title` is empty", 400)),
-        }
-    }
-    if let Some(text) = got.remove("description") {
-        task.description = some(text);
-    }
-    if let Some(text) = got.remove("due") {
-        task.due = some(text).map(|t| t.trim().to_owned());
-    }
-    if let Some(text) = got.remove("priority") {
-        task.priority =
-            match some(text) {
-                None => None,
-                Some(t) => Some(t.trim().parse::<i32>().map_err(|_| {
-                    boxed(BAD_ARGS, "`priority` is a whole number from 0 to 9", 400)
-                })?),
-            };
-    }
-    let (repo, id) = (repo.clone(), entry.id);
-    run_to_end(async move { repo.edit(id, task).await })
-        .await
-        .map_err(|e| boxed(INTERNAL, e.to_string(), 500))?
-        .map_err(to_problem)?;
-    Ok(Ran::Done(Done {
-        record: uid.to_owned(),
-        text: "task-edited",
-        head: None,
-    }))
 }
 
 /// A core error as the problem the caller can tell apart: a refusal (rejected, conflict, no such record) is not a break of the module.

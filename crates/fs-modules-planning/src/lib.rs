@@ -21,6 +21,7 @@ mod changes;
 mod commands;
 mod core;
 mod core_conv;
+mod edit;
 mod errors;
 mod facts;
 mod feed;
