@@ -7,7 +7,10 @@ use fs_modules_planning_client::Catalog;
 fn the_shipped_catalog_names_the_commands_by_contract_key_with_their_arguments() {
     let catalog = Catalog::bundled();
     let keys: Vec<&str> = catalog.keys().collect();
-    assert_eq!(keys, ["card.move", "task.create", "task.delete", "task.edit"]);
+    assert_eq!(
+        keys,
+        ["card.move", "task.create", "task.delete", "task.edit"]
+    );
     let args = |key: &str| {
         let c = catalog.command(key).unwrap();
         c.params

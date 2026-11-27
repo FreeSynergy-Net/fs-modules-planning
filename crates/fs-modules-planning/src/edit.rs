@@ -6,7 +6,9 @@ use fs_rpc::run_to_end;
 use fs_tasks_core::{Revision, TaskItems, TaskRepo};
 
 use crate::args::{Pairs, check_uid, text_args};
-use crate::write::{BAD_ARGS, Done, Failure, Ran, INTERNAL, UNSUPPORTED, boxed, task_of, to_problem};
+use crate::write::{
+    BAD_ARGS, Done, Failure, INTERNAL, Ran, UNSUPPORTED, boxed, task_of, to_problem,
+};
 
 const EDIT_ARGS: [&str; 4] = ["title", "description", "due", "priority"];
 

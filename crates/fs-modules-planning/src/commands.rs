@@ -6,9 +6,7 @@ use fs_tasks_core::TaskRepo;
 
 use crate::args::Pairs;
 use crate::edit::edit_task;
-use crate::write::{
-    Failure, Ran, UNKNOWN_COMMAND, boxed, create_task, delete_task, move_card,
-};
+use crate::write::{Failure, Ran, UNKNOWN_COMMAND, boxed, create_task, delete_task, move_card};
 
 /// Run `command` for `record` with `args` (read strictly here); `expect` is the `rev` the caller saw. Rights are not asked here.
 pub(crate) async fn dispatch(
