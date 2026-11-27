@@ -7,7 +7,7 @@ use fs_modules_planning_client::Catalog;
 fn the_shipped_catalog_names_the_commands_by_contract_key_with_their_arguments() {
     let catalog = Catalog::bundled();
     let keys: Vec<&str> = catalog.keys().collect();
-    assert_eq!(keys, ["card.move", "task.create", "task.delete"]);
+    assert_eq!(keys, ["card.move", "task.create", "task.delete", "task.edit"]);
     let args = |key: &str| {
         let c = catalog.command(key).unwrap();
         c.params
@@ -37,6 +37,16 @@ fn the_shipped_catalog_names_the_commands_by_contract_key_with_their_arguments()
             ("column", "text", true),
             ("after", "reference", false),
             ("before", "reference", false)
+        ]
+    );
+    assert_eq!(catalog.command("task.edit").unwrap().call, "Items.edit");
+    assert_eq!(
+        args("task.edit"),
+        [
+            ("title", "text", false),
+            ("description", "text", false),
+            ("due", "text", false),
+            ("priority", "text", false)
         ]
     );
     assert_eq!(catalog.command("task.delete").unwrap().call, "Items.delete");
@@ -99,7 +109,7 @@ fn the_file_keeps_the_duties_of_the_host() {
                 .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-' || b == b'_')
     };
     let commands = doc["commands"].as_array().unwrap();
-    assert_eq!(commands.len(), 3);
+    assert_eq!(commands.len(), 4);
     for c in commands {
         let key = c["capability"].as_str().unwrap();
         assert!(c.get("id").is_none(), "{key}: no id, the host derives it");

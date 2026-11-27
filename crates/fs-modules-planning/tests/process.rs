@@ -15,8 +15,9 @@ use fs_interfaces::tasks_capnp::tasks;
 use tokio::task::LocalSet;
 
 /// The capability ids of the contract `tasks.capnp` (fs-interfaces schema/tasks.capnp), what the service must report: no prefix.
-const CONTRACT_IDS: [&str; 9] = [
+const CONTRACT_IDS: [&str; 10] = [
     "task.create",
+    "task.edit",
     "task.read",
     "task.delete",
     "board.open",

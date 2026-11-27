@@ -15,8 +15,17 @@ fn caps(supported: &[&str]) -> Capabilities {
 
 #[test]
 fn may_is_what_the_provider_supports_and_nothing_else() {
-    let all = caps(&["card.move", "task.delete", "task.create"]);
-    assert_eq!(may(&all, &RECORD_COMMANDS), ["card.move", "task.delete"]);
+    let all = caps(&["card.move", "task.delete", "task.edit", "task.create"]);
+    assert_eq!(
+        may(&all, &RECORD_COMMANDS),
+        ["card.move", "task.delete", "task.edit"]
+    );
+    // only what the provider supports: without task.edit it is not offered
+    let no_edit = caps(&["card.move", "task.delete"]);
+    assert_eq!(
+        may(&no_edit, &RECORD_COMMANDS),
+        ["card.move", "task.delete"]
+    );
     assert_eq!(may(&all, &SET_COMMANDS), ["task.create"]);
     let some = caps(&["card.move"]);
     assert_eq!(may(&some, &RECORD_COMMANDS), ["card.move"]);

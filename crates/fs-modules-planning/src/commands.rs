@@ -5,7 +5,9 @@
 use fs_tasks_core::TaskRepo;
 
 use crate::args::Pairs;
-use crate::write::{Failure, Ran, UNKNOWN_COMMAND, boxed, create_task, delete_task, move_card};
+use crate::write::{
+    Failure, Ran, UNKNOWN_COMMAND, boxed, create_task, delete_task, edit_task, move_card,
+};
 
 /// Run `command` for `record` with `args` (read strictly here); `expect` is the `rev` the caller saw. Rights are not asked here.
 pub(crate) async fn dispatch(
@@ -19,6 +21,7 @@ pub(crate) async fn dispatch(
         "card.move" => move_card(repo, record, args, expect).await,
         "task.create" => create_task(repo, &record, args).await,
         "task.delete" => delete_task(repo, &record, args, expect).await,
+        "task.edit" => edit_task(repo, &record, args, expect).await,
         other => Err(boxed(UNKNOWN_COMMAND, format!("no command {other:?}"), 404)),
     }
 }

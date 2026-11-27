@@ -23,9 +23,10 @@ use crate::items::ItemsImpl;
 /// The contract version this service speaks.
 pub const CONTRACT_VERSION: &str = "tasks 0.1 (draft)";
 
-/// The capability ids this service serves (`Items`: create, get, getByUid, delete, list; `Boards`: all five methods).
-pub const CAPABILITIES: [&str; 9] = [
+/// The capability ids this service serves (`Items`: create, edit, get, getByUid, delete, list; `Boards`: all five methods).
+pub const CAPABILITIES: [&str; 10] = [
     "task.create",
+    "task.edit",
     "task.read",
     "task.delete",
     "board.open",

@@ -114,6 +114,13 @@ impl FormSourceFixture for Planning {
                 verify: value("title", "Made"),
             },
             Sample {
+                command: "task.edit".into(),
+                record: self.uids[0].clone(),
+                args: vec![a("title", "Edited"), a("priority", "2")],
+                makes_record: true,
+                verify: value("title", "Edited"),
+            },
+            Sample {
                 command: "task.delete".into(),
                 record: self.uids[1].clone(),
                 args: vec![],

@@ -1,4 +1,4 @@
-//! `Items` of the planning module: the methods the board needs (create, read, delete, list).
+//! `Items` of the planning module: the methods the board needs (create, edit, read, delete, list).
 //!
 //! Pattern: Adapter — wire request in, `TaskItems` call, wire response out. The other methods of the contract answer
 //! `unimplemented` (the capability list does not name them); they are added with the programs that need them.
@@ -28,6 +28,23 @@ impl items::Server for ItemsImpl {
         let task = read_task(params.get()?.get_jscalendar()?)?;
         let items = self.items.clone();
         let entry = run_to_end(async move { items.create(task).await })
+            .await?
+            .map_err(rpc_error)?;
+        write_task(results.get().init_task(), &entry);
+        Ok(())
+    }
+
+    /// `task.edit` of the contract: the task `id` is replaced by the JSCalendar text (the core keeps `uid` and moves `sequence` on).
+    async fn edit(
+        self: Rc<Self>,
+        params: items::EditParams,
+        mut results: items::EditResults,
+    ) -> Done {
+        let p = params.get()?;
+        let id = read_id(p.get_id()?)?;
+        let task = read_task(p.get_jscalendar()?)?;
+        let items = self.items.clone();
+        let entry = run_to_end(async move { items.edit(id, task).await })
             .await?
             .map_err(rpc_error)?;
         write_task(results.get().init_task(), &entry);

@@ -38,7 +38,7 @@ async fn the_service_reports_what_the_host_may_unlock() {
                 assert!(planning.can(op), "{op:?}");
             }
             // every command of the catalog is one the service reports, by its key of the contract
-            for key in ["card.move", "task.create", "task.delete"] {
+            for key in ["card.move", "task.create", "task.edit", "task.delete"] {
                 assert!(planning.can_command(key), "{key}");
             }
             for key in ["planning.card.move", "task.claim", "claim", "column.create"] {

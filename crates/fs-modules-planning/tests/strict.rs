@@ -116,6 +116,12 @@ fn valid(key: &str) -> Vec<(&'static str, &'static str)> {
             ("after", ""),
             ("before", ""),
         ],
+        "task.edit" => vec![
+            ("title", "Edited"),
+            ("description", "A note"),
+            ("due", "2026-12-01T09:00:00"),
+            ("priority", "3"),
+        ],
         _ => vec![],
     }
 }
@@ -207,7 +213,7 @@ async fn every_command_of_the_file_is_served_and_its_arguments_are_strict() {
                     .copied()
                     .filter(|(k, _)| required.contains(k))
                     .collect();
-                if key != "task.delete" {
+                if key != "task.delete" && key != "task.edit" {
                     call(&source, key, &rec, &without_optional)
                         .await
                         .unwrap_or_else(|e| panic!("{key}: {e:?}"));
@@ -258,7 +264,7 @@ async fn a_page_says_what_may_be_done_and_pages_by_cursor() {
                         .iter()
                         .map(|k| k.unwrap().to_string().unwrap())
                         .collect();
-                    assert_eq!(may, ["card.move", "task.delete"]);
+                    assert_eq!(may, ["card.move", "task.delete", "task.edit"]);
                     seen.push(r.get_id().unwrap().to_string().unwrap());
                     assert!(seen.len() <= 3, "the cursor never ends");
                 }
